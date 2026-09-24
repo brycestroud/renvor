@@ -1,5 +1,42 @@
 # Changelog
 
+## Phase 2 — Setup Data (2026-09-24)
+
+### Added
+- Projects: full CRUD (name, number, PM name/email, address, status),
+  search, archive (soft-delete only, per spec 5.6 — history stays intact).
+- Superintendents: full CRUD (contact info, years experience, home project,
+  NCCER status, notes, active flag) plus a custom-fields editor (add/remove
+  label-value pairs, stored in `super_custom_fields`). Archive works the
+  same as projects.
+- Settings > People: CRUD for report recipients/escalation contacts (name,
+  title, email, role, full-report/exec-summary flags). Hard-deletable per
+  spec — no history references a person directly.
+- Settings > Checklist: per-category weight editing with a live banner
+  warning when weighted categories don't total 100%; per-item rename,
+  frequency change, activate/deactivate, reorder (up/down), and add custom
+  items. Deactivating an item never deletes it, matching spec 3's note
+  about not losing history from already-scored items.
+- Shared UI: `Modal`, `ConfirmDialog`, `FormField` components reused across
+  all three CRUD screens.
+
+### Verified
+- Full create → edit → archive/remove cycle tested for Projects,
+  Superintendents (incl. custom field round-trip through IPC/SQLite),
+  and People, live in the Electron window.
+- Checklist weight-warning banner confirmed to flip color at the right
+  threshold; item reorder and add-item confirmed to persist and re-render.
+- `npm run typecheck`, `npm test` (12/12), `npm run build` all pass.
+- Test data created during verification was cleaned up afterward (archived/
+  removed through the app's own UI, not by hand-editing the DB).
+
+### Not done yet (later phases, not needed for Phase 2's own criteria)
+- No hard-delete anywhere by design — matches spec's soft-delete rule for
+  projects/superintendents/walks; checklist items are deactivate-only.
+- Drag-and-drop reordering was skipped in favor of up/down buttons — same
+  end result, simpler and more reliable; revisit only if it feels slow in
+  real use.
+
 ## Phase 1 — Foundation (2026-09-24)
 
 Scaffolded the desktop app per the build spec.
