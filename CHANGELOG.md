@@ -1,5 +1,46 @@
 # Changelog
 
+## Phase 4 — Action Items + walk archive (2026-09-24)
+
+### Added
+- Full Action Items screen: status tabs (Open/Overdue/Escalated/Closed/
+  All), filters (project, super, owner, priority) and text search.
+- Stat tiles: Open, Overdue, Escalated, Closed this week.
+- Inline actions per row: Close, Carry, Escalate (shared dialog from
+  Phase 3, now reusable outside a walk), De-escalate (new dialog, with
+  an optional resolution note), Reopen for closed items, Edit, and
+  Delete with a confirmation dialog.
+- "Include in report" toggle, shown for escalated items per spec.
+- History drawer reading `action_item_events`, with notified people's
+  names resolved instead of raw IDs.
+- Manual "Add" action item from anywhere, not just mid-walk.
+- Walk archive: closes the gap flagged in the Phase 3 check-in. Walks
+  are now soft-deletable (`Archive` in the walk editor header), same
+  confirm-dialog pattern as projects/superintendents.
+
+### Decisions made without asking again
+- "Delete" for an action item is a soft-delete (`deleted_at`), same as
+  everywhere else in the app, even though spec 3's soft-delete list
+  doesn't explicitly name action_items. Kept it reversible-in-principle
+  rather than a true hard delete, consistent with the app's general
+  caution around destructive actions; the confirmation copy still says
+  "can't be undone from the app" since there's no restore UI.
+- Reopen (for closed items) wasn't explicitly asked for in spec 5.4's
+  button list, but the schema/backend already supported it via the
+  existing event enum, so it's exposed - matches section 8's "undo... is
+  nice to have."
+- "Add from text/email (AI)" is not built - stays Phase 8 per the phase
+  table, same reasoning as the Job Walk AI-scan omission.
+
+### Verified
+- Full lifecycle live in the Electron window: create -> escalate ->
+  check history -> de-escalate -> edit due date -> close -> confirm
+  stat tiles update at each step -> delete with confirmation.
+- Escalate dialog renders and behaves identically whether opened from
+  Job Walk (with a walkId) or Action Items (without one).
+- Walk archive removes a walk from Recent Walks immediately.
+- `npm run typecheck`, `npm test` (12/12), `npm run build` all pass.
+
 ## Phase 3 — Job Walk (2026-09-24)
 
 ### Added
