@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: local('IBM Plex Sans');
+}
+
+/* Dark is the default/showcase theme. */
+:root,
+:root[data-theme='dark'] {
+  --canvas: #0b0e12;
+  --sidebar: #0e1217;
+  --surface-1: #141920;
+  --surface-2: #191f27;
+  --surface-hover: #202731;
+  --border-strong: #303946;
+  --border: #252c35;
+  --border-subtle: #1d232b;
+
+  --text-primary: #f2f4f7;
+  --text-secondary: #b2bac5;
+  --text-muted: #7f8997;
+  --text-disabled: #596270;
+
+  --brand: #ff8a24;
+  --brand-hover: #ff9b42;
+  --brand-pressed: #e97012;
+  --brand-muted: #332113;
+  --brand-border: #68401e;
+
+  --info: #4ea1ff;
+  --info-hover: #72b4ff;
+  --info-muted: #14283d;
+
+  --success: #3ac48d;
+  --success-muted: #122c24;
+  --warning: #e8b84a;
+  --warning-muted: #302714;
+  --danger: #ef646a;
+  --danger-muted: #35191d;
+}
+
+:root[data-theme='light'] {
+  --canvas: #f3f4f2;
+  --sidebar: #ffffff;
+  --surface-1: #ffffff;
+  --surface-2: #ecefed;
+  --surface-hover: #e4e7e4;
+  --border-strong: #c7cdd1;
+  --border: #d9dddf;
+  --border-subtle: #e5e8e6;
+
+  --text-primary: #171b20;
+  --text-secondary: #59616b;
+  --text-muted: #838b94;
+  --text-disabled: #b3b9bf;
+
+  --brand: #ff8a24;
+  --brand-hover: #e97012;
+  --brand-pressed: #c95f0e;
+  --brand-muted: #fdece0;
+  --brand-border: #f0b988;
+
+  --info: #2f7fe0;
+  --info-hover: #1f6bc7;
+  --info-muted: #e5f0ff;
+
+  --success: #1f9d6c;
+  --success-muted: #e2f6ee;
+  --warning: #b8860f;
+  --warning-muted: #fbf1dc;
+  --danger: #d43e45;
+  --danger-muted: #fbe6e7;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--text-primary);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+}

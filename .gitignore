@@ -1,0 +1,14 @@
+node_modules
+out
+dist
+dist-electron
+release
+*.tsbuildinfo
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+.env.local
+import-samples/*
+!import-samples/.gitkeep
