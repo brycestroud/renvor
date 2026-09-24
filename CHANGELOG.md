@@ -1,5 +1,76 @@
 # Changelog
 
+## Phase 3 — Job Walk (2026-09-24)
+
+### Added
+- Full Job Walk workflow: start-a-walk picker (superintendent/project/date/
+  visit type, with home-project auto-switch you can still override) plus
+  a recent-walks list to reopen drafts or submitted walks.
+- Collapsible category sections with live category scores, 1-5/N/A
+  scoring (44px+ touch targets), due-item highlighting driven by real
+  cross-walk history rather than the calendar-only logic the prototype
+  had (spec bug #8) — monthly/once-per-job frequencies now check actual
+  score history for that super/project pair.
+- "Mark all remaining N/A" and "Copy scores from last walk" (per your
+  Phase 1 answer), both working across the whole walk, not per-category.
+- Per-category notes, overall notes, and follow-up notes, each saving on
+  blur and again on a 10s interval if left dirty.
+- Keyboard shortcuts: 1-5 scores the focused item and N marks it N/A,
+  both advancing focus to the next item automatically.
+- Step mode: one category at a time with Previous/Next, for tablet use.
+- Open action item review gate: every open/carried item for that super/
+  project (from *prior* walks — items you add during the current walk
+  don't loop back and block themselves) must be closed, carried, or
+  escalated before Submit unlocks. Escalate opens a dialog that logs the
+  event and, per your mailto decision, opens a pre-filled email to
+  whichever People you check.
+- New action items addable mid-walk (owner, due date defaulting +7 days,
+  priority) — hinted at 3-5, never enforced.
+- Editing an already-submitted walk is allowed; shows a banner and logs
+  `lastEditedAt`. Export PDF / Email to... are visible but disabled with
+  a "Phase 6" tooltip since PDF export doesn't exist yet.
+- Backend: `walksRepo` and the Job-Walk-only slice of `actionItemsRepo`
+  (list-open-for-super-project, create, transition+event-log). The full
+  Action Items screen with filters/history drawer is still Phase 4, built
+  on this same backend.
+
+### Decisions made without asking again
+- AI-suggested action items from scanning walk notes: not built - that's
+  explicitly Phase 8 per the phase table, so Job Walk has no AI call yet.
+- "Save Draft" flushes the overall/follow-up notes fields immediately;
+  category notes already autosave independently (blur + 10s interval) so
+  they don't need a second flush path.
+- No walk delete/archive exists yet - spec's Job Walk section never asks
+  for one, only editing. Flagging it since I hit the gap firsthand while
+  cleaning up test data (had to delete rows directly since there's no UI
+  path) - worth a quick decision at the Action Items or Dashboard phase
+  check-in about whether walks ever need to be removable.
+
+### Verified
+- Two full walks end to end in the real Electron window: one submitted
+  (PDF/Email buttons correctly disabled, banner correct), one left as a
+  draft (shows in Recent Walks with the right badge).
+- Copy-from-last pulled all 62 scores correctly from walk 1 into walk 2.
+- Keyboard shortcuts (1-5, N) score and advance focus correctly.
+- An action item created in walk 1 correctly blocked Submit on walk 2
+  until escalated; escalating cleared the gate and Submit unlocked.
+- `npm run typecheck`, `npm test` (12/12), `npm run build` all pass.
+
+### Correction to the Phase 1 changelog entry
+While testing this phase I found two dev-mode bugs — preload couldn't
+bundle `zod` under `sandbox: true` (needs bundling, not
+`externalizeDepsPlugin`), and the dev-mode CSP blocked Vite's React
+Refresh preamble script. Both were actually fixed during Phase 1's own
+verification, before that commit — an earlier draft of this entry
+mistakenly implied they were new to Phase 3. Correcting that here.
+
+### Also caught during this phase (unrelated to the app)
+A computer-use clipboard race pasted the wrong text into a project name
+field during manual testing (created a garbage test project). Confirmed
+with you, cleaned up via the app's own archive flow — not an app bug,
+just a note in case you see "clipboard" come up if you ever read back
+through session history.
+
 ## Phase 2 — Setup Data (2026-09-24)
 
 ### Added
