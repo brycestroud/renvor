@@ -7,8 +7,7 @@ import {
   HardHat,
   Building2,
   Plug,
-  Settings as SettingsIcon,
-  Bug
+  Settings as SettingsIcon
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -33,9 +32,7 @@ const managementNav: NavItem[] = [
 
 const bottomNav: NavItem[] = [
   { to: '/procore', label: 'Procore', icon: Plug, comingSoon: true },
-  { to: '/settings', label: 'Settings', icon: SettingsIcon },
-  // Temporary Phase 1 verification route - remove once Phase 2 screens exist.
-  { to: '/debug/seed', label: 'Debug Seed', icon: Bug }
+  { to: '/settings', label: 'Settings', icon: SettingsIcon }
 ]
 
 function NavRow({ item }: { item: NavItem }): JSX.Element {

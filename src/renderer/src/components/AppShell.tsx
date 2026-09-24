@@ -12,8 +12,7 @@ const pageLabels: Record<string, string> = {
   '/superintendents': 'Superintendents',
   '/projects': 'Projects',
   '/procore': 'Procore',
-  '/settings': 'Settings',
-  '/debug/seed': 'Debug / Seed Data'
+  '/settings': 'Settings'
 }
 
 export function AppShell(): JSX.Element {

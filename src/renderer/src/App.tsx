@@ -12,7 +12,6 @@ import { Superintendents } from './pages/Superintendents'
 import { Projects } from './pages/Projects'
 import { Procore } from './pages/Procore'
 import { Settings } from './pages/Settings'
-import { DebugSeed } from './pages/DebugSeed'
 
 function useAppliedTheme(theme: 'light' | 'dark' | 'system' | undefined): void {
   useEffect(() => {
@@ -55,7 +54,6 @@ export function App(): JSX.Element | null {
           <Route path="/projects" element={<Projects />} />
           <Route path="/procore" element={<Procore />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/debug/seed" element={<DebugSeed />} />
         </Route>
       </Routes>
     </HashRouter>
