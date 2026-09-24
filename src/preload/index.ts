@@ -11,7 +11,18 @@ import {
   type UpdateCategoryWeightInput,
   type CreateChecklistItemInput,
   type UpdateChecklistItemInput,
-  type ReorderChecklistItemsInput
+  type ReorderChecklistItemsInput,
+  type CreateWalkInput,
+  type UpdateWalkHeaderInput,
+  type SetItemScoreInput,
+  type MarkAllRemainingNaInput,
+  type SetCategoryNoteInput,
+  type CopyFromLastWalkInput,
+  type GetItemHistoryInput,
+  type SubmitWalkInput,
+  type ListOpenActionItemsInput,
+  type CreateActionItemInput,
+  type TransitionActionItemInput
 } from '@shared/ipc-contract'
 
 const api = {
@@ -45,7 +56,30 @@ const api = {
   updateChecklistItem: (input: UpdateChecklistItemInput) =>
     ipcRenderer.invoke(IPC.CHECKLIST_ITEMS_UPDATE, input),
   reorderChecklistItems: (input: ReorderChecklistItemsInput) =>
-    ipcRenderer.invoke(IPC.CHECKLIST_ITEMS_REORDER, input)
+    ipcRenderer.invoke(IPC.CHECKLIST_ITEMS_REORDER, input),
+
+  listRecentWalks: () => ipcRenderer.invoke(IPC.WALKS_LIST_RECENT),
+  getWalk: (id: string) => ipcRenderer.invoke(IPC.WALKS_GET, id),
+  createWalk: (input: CreateWalkInput) => ipcRenderer.invoke(IPC.WALKS_CREATE, input),
+  updateWalkHeader: (input: UpdateWalkHeaderInput) =>
+    ipcRenderer.invoke(IPC.WALKS_UPDATE_HEADER, input),
+  setItemScore: (input: SetItemScoreInput) => ipcRenderer.invoke(IPC.WALKS_SET_ITEM_SCORE, input),
+  markAllRemainingNa: (input: MarkAllRemainingNaInput) =>
+    ipcRenderer.invoke(IPC.WALKS_MARK_ALL_REMAINING_NA, input),
+  setCategoryNote: (input: SetCategoryNoteInput) =>
+    ipcRenderer.invoke(IPC.WALKS_SET_CATEGORY_NOTE, input),
+  copyFromLastWalk: (input: CopyFromLastWalkInput) =>
+    ipcRenderer.invoke(IPC.WALKS_COPY_FROM_LAST, input),
+  getItemHistory: (input: GetItemHistoryInput) =>
+    ipcRenderer.invoke(IPC.WALKS_GET_ITEM_HISTORY, input),
+  submitWalk: (input: SubmitWalkInput) => ipcRenderer.invoke(IPC.WALKS_SUBMIT, input),
+
+  listOpenActionItems: (input: ListOpenActionItemsInput) =>
+    ipcRenderer.invoke(IPC.ACTION_ITEMS_LIST_OPEN_FOR_SUPER_PROJECT, input),
+  createActionItem: (input: CreateActionItemInput) =>
+    ipcRenderer.invoke(IPC.ACTION_ITEMS_CREATE, input),
+  transitionActionItem: (input: TransitionActionItemInput) =>
+    ipcRenderer.invoke(IPC.ACTION_ITEMS_TRANSITION, input)
 }
 
 export type GsApi = typeof api

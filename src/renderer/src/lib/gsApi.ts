@@ -14,7 +14,22 @@ import type {
   UpdateCategoryWeightInput,
   CreateChecklistItemInput,
   UpdateChecklistItemInput,
-  ReorderChecklistItemsInput
+  ReorderChecklistItemsInput,
+  WalkListItem,
+  WalkDetail,
+  CreateWalkInput,
+  UpdateWalkHeaderInput,
+  SetItemScoreInput,
+  MarkAllRemainingNaInput,
+  SetCategoryNoteInput,
+  CopyFromLastWalkInput,
+  GetItemHistoryInput,
+  ItemHistoryRecord,
+  SubmitWalkInput,
+  ActionItemDto,
+  ListOpenActionItemsInput,
+  CreateActionItemInput,
+  TransitionActionItemInput
 } from '@shared/ipc-contract'
 
 export interface GsApi {
@@ -43,6 +58,21 @@ export interface GsApi {
   createChecklistItem: (input: CreateChecklistItemInput) => Promise<void>
   updateChecklistItem: (input: UpdateChecklistItemInput) => Promise<void>
   reorderChecklistItems: (input: ReorderChecklistItemsInput) => Promise<void>
+
+  listRecentWalks: () => Promise<WalkListItem[]>
+  getWalk: (id: string) => Promise<WalkDetail>
+  createWalk: (input: CreateWalkInput) => Promise<WalkDetail>
+  updateWalkHeader: (input: UpdateWalkHeaderInput) => Promise<WalkDetail>
+  setItemScore: (input: SetItemScoreInput) => Promise<void>
+  markAllRemainingNa: (input: MarkAllRemainingNaInput) => Promise<void>
+  setCategoryNote: (input: SetCategoryNoteInput) => Promise<void>
+  copyFromLastWalk: (input: CopyFromLastWalkInput) => Promise<WalkDetail>
+  getItemHistory: (input: GetItemHistoryInput) => Promise<ItemHistoryRecord[]>
+  submitWalk: (input: SubmitWalkInput) => Promise<WalkDetail>
+
+  listOpenActionItems: (input: ListOpenActionItemsInput) => Promise<ActionItemDto[]>
+  createActionItem: (input: CreateActionItemInput) => Promise<ActionItemDto>
+  transitionActionItem: (input: TransitionActionItemInput) => Promise<ActionItemDto>
 }
 
 declare global {

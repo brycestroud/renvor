@@ -11,7 +11,18 @@ import {
   updateCategoryWeightInput,
   createChecklistItemInput,
   updateChecklistItemInput,
-  reorderChecklistItemsInput
+  reorderChecklistItemsInput,
+  createWalkInput,
+  updateWalkHeaderInput,
+  setItemScoreInput,
+  markAllRemainingNaInput,
+  setCategoryNoteInput,
+  copyFromLastWalkInput,
+  getItemHistoryInput,
+  submitWalkInput,
+  listOpenActionItemsInput,
+  createActionItemInput,
+  transitionActionItemInput
 } from '@shared/ipc-contract'
 import { getAllSettings, setManySettings } from './settingsRepo'
 import { listProjects, createProject, updateProject, archiveProject } from './projectsRepo'
@@ -28,6 +39,23 @@ import {
   updateChecklistItem,
   reorderChecklistItems
 } from './checklistItemsRepo'
+import {
+  listRecentWalks,
+  getWalk,
+  createWalk,
+  updateWalkHeader,
+  setItemScore,
+  markAllRemainingNa,
+  setCategoryNote,
+  copyFromLastWalk,
+  getItemHistory,
+  submitWalk
+} from './walksRepo'
+import {
+  listOpenActionItemsForSuperProject,
+  createActionItem,
+  transitionActionItem
+} from './actionItemsRepo'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.APP_GET_VERSION, () => app.getVersion())
@@ -77,5 +105,38 @@ export function registerIpcHandlers(): void {
   )
   ipcMain.handle(IPC.CHECKLIST_ITEMS_REORDER, (_e, payload: unknown) =>
     reorderChecklistItems(reorderChecklistItemsInput.parse(payload))
+  )
+
+  ipcMain.handle(IPC.WALKS_LIST_RECENT, () => listRecentWalks())
+  ipcMain.handle(IPC.WALKS_GET, (_e, id: string) => getWalk(id))
+  ipcMain.handle(IPC.WALKS_CREATE, (_e, payload: unknown) => createWalk(createWalkInput.parse(payload)))
+  ipcMain.handle(IPC.WALKS_UPDATE_HEADER, (_e, payload: unknown) =>
+    updateWalkHeader(updateWalkHeaderInput.parse(payload))
+  )
+  ipcMain.handle(IPC.WALKS_SET_ITEM_SCORE, (_e, payload: unknown) =>
+    setItemScore(setItemScoreInput.parse(payload))
+  )
+  ipcMain.handle(IPC.WALKS_MARK_ALL_REMAINING_NA, (_e, payload: unknown) =>
+    markAllRemainingNa(markAllRemainingNaInput.parse(payload))
+  )
+  ipcMain.handle(IPC.WALKS_SET_CATEGORY_NOTE, (_e, payload: unknown) =>
+    setCategoryNote(setCategoryNoteInput.parse(payload))
+  )
+  ipcMain.handle(IPC.WALKS_COPY_FROM_LAST, (_e, payload: unknown) =>
+    copyFromLastWalk(copyFromLastWalkInput.parse(payload))
+  )
+  ipcMain.handle(IPC.WALKS_GET_ITEM_HISTORY, (_e, payload: unknown) =>
+    getItemHistory(getItemHistoryInput.parse(payload))
+  )
+  ipcMain.handle(IPC.WALKS_SUBMIT, (_e, payload: unknown) => submitWalk(submitWalkInput.parse(payload)))
+
+  ipcMain.handle(IPC.ACTION_ITEMS_LIST_OPEN_FOR_SUPER_PROJECT, (_e, payload: unknown) =>
+    listOpenActionItemsForSuperProject(listOpenActionItemsInput.parse(payload))
+  )
+  ipcMain.handle(IPC.ACTION_ITEMS_CREATE, (_e, payload: unknown) =>
+    createActionItem(createActionItemInput.parse(payload))
+  )
+  ipcMain.handle(IPC.ACTION_ITEMS_TRANSITION, (_e, payload: unknown) =>
+    transitionActionItem(transitionActionItemInput.parse(payload))
   )
 }

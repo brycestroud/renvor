@@ -31,7 +31,22 @@ export const IPC = {
 
   CHECKLIST_ITEMS_CREATE: 'checklistItems:create',
   CHECKLIST_ITEMS_UPDATE: 'checklistItems:update',
-  CHECKLIST_ITEMS_REORDER: 'checklistItems:reorder'
+  CHECKLIST_ITEMS_REORDER: 'checklistItems:reorder',
+
+  WALKS_LIST_RECENT: 'walks:listRecent',
+  WALKS_GET: 'walks:get',
+  WALKS_CREATE: 'walks:create',
+  WALKS_UPDATE_HEADER: 'walks:updateHeader',
+  WALKS_SET_ITEM_SCORE: 'walks:setItemScore',
+  WALKS_MARK_ALL_REMAINING_NA: 'walks:markAllRemainingNa',
+  WALKS_SET_CATEGORY_NOTE: 'walks:setCategoryNote',
+  WALKS_COPY_FROM_LAST: 'walks:copyFromLast',
+  WALKS_GET_ITEM_HISTORY: 'walks:getItemHistory',
+  WALKS_SUBMIT: 'walks:submit',
+
+  ACTION_ITEMS_LIST_OPEN_FOR_SUPER_PROJECT: 'actionItems:listOpenForSuperProject',
+  ACTION_ITEMS_CREATE: 'actionItems:create',
+  ACTION_ITEMS_TRANSITION: 'actionItems:transition'
 } as const
 
 export const settingsSchema = z.object({
@@ -226,3 +241,164 @@ export const reorderChecklistItemsInput = z.object({
   orderedIds: z.array(z.string())
 })
 export type ReorderChecklistItemsInput = z.infer<typeof reorderChecklistItemsInput>
+
+// ---------------------------------------------------------------------------
+// Walks
+// ---------------------------------------------------------------------------
+export type VisitType = 'home' | 'cross_project'
+export type WalkStatus = 'draft' | 'submitted'
+
+export interface WalkListItem {
+  id: string
+  date: string
+  superintendentId: string
+  superintendentName: string
+  projectId: string
+  projectName: string
+  visitType: VisitType
+  status: WalkStatus
+  submittedAt: string | null
+  updatedAt: string
+}
+
+export interface WalkItemScoreDto {
+  id: string
+  checklistItemId: string
+  categoryId: string
+  itemTextSnapshot: string
+  score: number | null
+  isNa: boolean
+}
+
+export interface WalkCategoryNoteDto {
+  categoryId: string
+  notes: string
+}
+
+export interface WalkDetail {
+  id: string
+  date: string
+  superintendentId: string
+  superintendentName: string
+  projectId: string
+  projectName: string
+  pmNameSnapshot: string | null
+  visitType: VisitType
+  overallNotes: string | null
+  followupNotes: string | null
+  status: WalkStatus
+  submittedAt: string | null
+  lastEditedAt: string | null
+  createdAt: string
+  updatedAt: string
+  itemScores: WalkItemScoreDto[]
+  categoryNotes: WalkCategoryNoteDto[]
+}
+
+export const createWalkInput = z.object({
+  date: z.string(),
+  superintendentId: z.string(),
+  projectId: z.string(),
+  visitType: z.enum(['home', 'cross_project'])
+})
+export type CreateWalkInput = z.infer<typeof createWalkInput>
+
+export const updateWalkHeaderInput = z.object({
+  id: z.string(),
+  date: z.string().optional(),
+  superintendentId: z.string().optional(),
+  projectId: z.string().optional(),
+  visitType: z.enum(['home', 'cross_project']).optional(),
+  overallNotes: z.string().nullable().optional(),
+  followupNotes: z.string().nullable().optional()
+})
+export type UpdateWalkHeaderInput = z.infer<typeof updateWalkHeaderInput>
+
+export const setItemScoreInput = z.object({
+  walkId: z.string(),
+  checklistItemId: z.string(),
+  score: z.number().int().min(1).max(5).nullable(),
+  isNa: z.boolean()
+})
+export type SetItemScoreInput = z.infer<typeof setItemScoreInput>
+
+export const markAllRemainingNaInput = z.object({
+  walkId: z.string()
+})
+export type MarkAllRemainingNaInput = z.infer<typeof markAllRemainingNaInput>
+
+export const setCategoryNoteInput = z.object({
+  walkId: z.string(),
+  categoryId: z.string(),
+  notes: z.string()
+})
+export type SetCategoryNoteInput = z.infer<typeof setCategoryNoteInput>
+
+export const copyFromLastWalkInput = z.object({
+  walkId: z.string()
+})
+export type CopyFromLastWalkInput = z.infer<typeof copyFromLastWalkInput>
+
+export const getItemHistoryInput = z.object({
+  superintendentId: z.string(),
+  projectId: z.string(),
+  excludeWalkId: z.string().optional()
+})
+export type GetItemHistoryInput = z.infer<typeof getItemHistoryInput>
+
+export interface ItemHistoryRecord {
+  checklistItemId: string
+  date: string
+  wasScored: boolean
+}
+
+export const submitWalkInput = z.object({ id: z.string() })
+export type SubmitWalkInput = z.infer<typeof submitWalkInput>
+
+// ---------------------------------------------------------------------------
+// Action items (full CRUD/filter UI lands in Phase 4 - this is the subset
+// the Job Walk screen needs: reviewing open items and adding new ones)
+// ---------------------------------------------------------------------------
+export interface ActionItemDto {
+  id: string
+  text: string
+  ownerType: 'gs' | 'superintendent' | 'pm'
+  superintendentId: string | null
+  projectId: string | null
+  dueDate: string | null
+  priority: 'high' | 'medium' | 'low'
+  status: 'open' | 'carried' | 'closed' | 'escalated'
+  source: 'walk' | 'manual' | 'ai_text' | 'ai_walk_scan' | 'procore'
+  sourceSummary: string | null
+  originWalkId: string | null
+  includeInReport: boolean
+  closedAt: string | null
+  createdAt: string
+}
+
+export const listOpenActionItemsInput = z.object({
+  superintendentId: z.string(),
+  projectId: z.string()
+})
+export type ListOpenActionItemsInput = z.infer<typeof listOpenActionItemsInput>
+
+export const createActionItemInput = z.object({
+  text: z.string().trim().min(1),
+  ownerType: z.enum(['gs', 'superintendent', 'pm']).default('superintendent'),
+  superintendentId: z.string().nullable().default(null),
+  projectId: z.string().nullable().default(null),
+  dueDate: z.string().nullable().default(null),
+  priority: z.enum(['high', 'medium', 'low']).default('medium'),
+  source: z.enum(['walk', 'manual', 'ai_text', 'ai_walk_scan', 'procore']).default('manual'),
+  originWalkId: z.string().nullable().default(null)
+})
+export type CreateActionItemInput = z.infer<typeof createActionItemInput>
+
+export const transitionActionItemInput = z.object({
+  id: z.string(),
+  event: z.enum(['closed', 'carried', 'escalated', 'de_escalated', 'reopened']),
+  note: z.string().nullable().default(null),
+  notified: z.array(z.string()).default([]),
+  walkId: z.string().nullable().default(null)
+})
+export type TransitionActionItemInput = z.infer<typeof transitionActionItemInput>
