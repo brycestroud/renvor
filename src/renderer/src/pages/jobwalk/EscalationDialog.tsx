@@ -7,13 +7,13 @@ import type { ActionItemDto } from '@shared/ipc-contract'
 
 export function EscalationDialog({
   item,
-  walkId,
+  walkId = null,
   superintendentName,
   projectName,
   onClose
 }: {
   item: ActionItemDto
-  walkId: string
+  walkId?: string | null
   superintendentName: string
   projectName: string
   onClose: () => void
@@ -35,6 +35,7 @@ export function EscalationDialog({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['open-action-items'] })
+      queryClient.invalidateQueries({ queryKey: ['action-items-all'] })
 
       if (settings?.escalationMode === 'mailto') {
         const recipients = (people ?? []).filter((p) => notified.includes(p.id)).map((p) => p.email)

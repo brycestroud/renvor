@@ -389,3 +389,12 @@ export function submitWalk(input: SubmitWalkInput): WalkDetail {
     .run()
   return loadWalkDetail(db, input.id)
 }
+
+/** Soft-delete only - item scores, category notes, and any linked action items stay intact. */
+export function archiveWalk(id: string): void {
+  const db = getDb()
+  db.update(schema.walks)
+    .set({ deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+    .where(eq(schema.walks.id, id))
+    .run()
+}

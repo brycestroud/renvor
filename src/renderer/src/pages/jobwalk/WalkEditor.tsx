@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, ChevronLeft, ChevronRight, FileText, Mail, RotateCcw } from 'lucide-react'
+import { Archive, CheckCircle2, ChevronLeft, ChevronRight, FileText, Mail, RotateCcw } from 'lucide-react'
 import { CategorySection } from './CategorySection'
 import { ActionItemsSection } from './ActionItemsSection'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { inputClass, selectClass } from '../../components/FormField'
 import { useAutosaveText } from '../../lib/useAutosaveText'
 import { gsApi } from '../../lib/gsApi'
@@ -47,6 +48,7 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
   const [stepIndex, setStepIndex] = useState(0)
   const [focusedItemId, setFocusedItemId] = useState<string | null>(null)
   const [savedFlash, setSavedFlash] = useState(false)
+  const [archiving, setArchiving] = useState(false)
 
   const activeCategories = useMemo(
     () => (categories ?? []).filter((c) => c.active).sort((a, b) => a.sortOrder - b.sortOrder),
@@ -148,6 +150,14 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
     }
   })
 
+  const archive = useMutation({
+    mutationFn: () => gsApi().archiveWalk(walkId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recent-walks'] })
+      onExit()
+    }
+  })
+
   const overallNotes = useAutosaveText(walk?.overallNotes ?? '', (v) =>
     updateHeader.mutate({ overallNotes: v })
   )
@@ -227,6 +237,13 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
               />
               Step mode
             </label>
+            <button
+              onClick={() => setArchiving(true)}
+              className="flex items-center gap-1 text-xs text-text-muted hover:text-danger"
+              title="Archive this walk"
+            >
+              <Archive size={13} /> Archive
+            </button>
           </div>
         </div>
 
@@ -456,6 +473,18 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
           </button>
         )}
       </div>
+
+      {archiving && (
+        <ConfirmDialog
+          title="Archive this walk?"
+          description="This walk will be archived, not deleted - its scores and notes stay in the database, but it drops off Recent Walks and out of reports."
+          confirmLabel="Archive"
+          danger
+          pending={archive.isPending}
+          onConfirm={() => archive.mutate()}
+          onCancel={() => setArchiving(false)}
+        />
+      )}
     </div>
   )
 }

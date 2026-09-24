@@ -43,10 +43,15 @@ export const IPC = {
   WALKS_COPY_FROM_LAST: 'walks:copyFromLast',
   WALKS_GET_ITEM_HISTORY: 'walks:getItemHistory',
   WALKS_SUBMIT: 'walks:submit',
+  WALKS_ARCHIVE: 'walks:archive',
 
   ACTION_ITEMS_LIST_OPEN_FOR_SUPER_PROJECT: 'actionItems:listOpenForSuperProject',
+  ACTION_ITEMS_LIST_ALL: 'actionItems:listAll',
   ACTION_ITEMS_CREATE: 'actionItems:create',
-  ACTION_ITEMS_TRANSITION: 'actionItems:transition'
+  ACTION_ITEMS_UPDATE: 'actionItems:update',
+  ACTION_ITEMS_TRANSITION: 'actionItems:transition',
+  ACTION_ITEMS_DELETE: 'actionItems:delete',
+  ACTION_ITEMS_GET_EVENTS: 'actionItems:getEvents'
 } as const
 
 export const settingsSchema = z.object({
@@ -402,3 +407,32 @@ export const transitionActionItemInput = z.object({
   walkId: z.string().nullable().default(null)
 })
 export type TransitionActionItemInput = z.infer<typeof transitionActionItemInput>
+
+export interface ActionItemListDto extends ActionItemDto {
+  superintendentName: string | null
+  projectName: string | null
+}
+
+export const updateActionItemInput = z.object({
+  id: z.string(),
+  text: z.string().trim().min(1).optional(),
+  ownerType: z.enum(['gs', 'superintendent', 'pm']).optional(),
+  superintendentId: z.string().nullable().optional(),
+  projectId: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
+  priority: z.enum(['high', 'medium', 'low']).optional(),
+  includeInReport: z.boolean().optional()
+})
+export type UpdateActionItemInput = z.infer<typeof updateActionItemInput>
+
+export interface ActionItemEventDto {
+  id: string
+  event: 'created' | 'edited' | 'carried' | 'closed' | 'escalated' | 'de_escalated' | 'reopened'
+  walkId: string | null
+  note: string | null
+  notifiedNames: string[]
+  createdAt: string
+}
+
+export const getActionItemEventsInput = z.object({ actionItemId: z.string() })
+export type GetActionItemEventsInput = z.infer<typeof getActionItemEventsInput>

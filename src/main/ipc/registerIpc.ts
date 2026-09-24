@@ -22,7 +22,9 @@ import {
   submitWalkInput,
   listOpenActionItemsInput,
   createActionItemInput,
-  transitionActionItemInput
+  updateActionItemInput,
+  transitionActionItemInput,
+  getActionItemEventsInput
 } from '@shared/ipc-contract'
 import { getAllSettings, setManySettings } from './settingsRepo'
 import { listProjects, createProject, updateProject, archiveProject } from './projectsRepo'
@@ -49,12 +51,17 @@ import {
   setCategoryNote,
   copyFromLastWalk,
   getItemHistory,
-  submitWalk
+  submitWalk,
+  archiveWalk
 } from './walksRepo'
 import {
   listOpenActionItemsForSuperProject,
+  listAllActionItems,
   createActionItem,
-  transitionActionItem
+  updateActionItem,
+  transitionActionItem,
+  deleteActionItem,
+  getActionItemEvents
 } from './actionItemsRepo'
 
 export function registerIpcHandlers(): void {
@@ -129,14 +136,23 @@ export function registerIpcHandlers(): void {
     getItemHistory(getItemHistoryInput.parse(payload))
   )
   ipcMain.handle(IPC.WALKS_SUBMIT, (_e, payload: unknown) => submitWalk(submitWalkInput.parse(payload)))
+  ipcMain.handle(IPC.WALKS_ARCHIVE, (_e, id: string) => archiveWalk(id))
 
   ipcMain.handle(IPC.ACTION_ITEMS_LIST_OPEN_FOR_SUPER_PROJECT, (_e, payload: unknown) =>
     listOpenActionItemsForSuperProject(listOpenActionItemsInput.parse(payload))
   )
+  ipcMain.handle(IPC.ACTION_ITEMS_LIST_ALL, () => listAllActionItems())
   ipcMain.handle(IPC.ACTION_ITEMS_CREATE, (_e, payload: unknown) =>
     createActionItem(createActionItemInput.parse(payload))
   )
+  ipcMain.handle(IPC.ACTION_ITEMS_UPDATE, (_e, payload: unknown) =>
+    updateActionItem(updateActionItemInput.parse(payload))
+  )
   ipcMain.handle(IPC.ACTION_ITEMS_TRANSITION, (_e, payload: unknown) =>
     transitionActionItem(transitionActionItemInput.parse(payload))
+  )
+  ipcMain.handle(IPC.ACTION_ITEMS_DELETE, (_e, id: string) => deleteActionItem(id))
+  ipcMain.handle(IPC.ACTION_ITEMS_GET_EVENTS, (_e, payload: unknown) =>
+    getActionItemEvents(getActionItemEventsInput.parse(payload))
   )
 }

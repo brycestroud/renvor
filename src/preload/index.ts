@@ -22,7 +22,9 @@ import {
   type SubmitWalkInput,
   type ListOpenActionItemsInput,
   type CreateActionItemInput,
-  type TransitionActionItemInput
+  type UpdateActionItemInput,
+  type TransitionActionItemInput,
+  type GetActionItemEventsInput
 } from '@shared/ipc-contract'
 
 const api = {
@@ -73,13 +75,20 @@ const api = {
   getItemHistory: (input: GetItemHistoryInput) =>
     ipcRenderer.invoke(IPC.WALKS_GET_ITEM_HISTORY, input),
   submitWalk: (input: SubmitWalkInput) => ipcRenderer.invoke(IPC.WALKS_SUBMIT, input),
+  archiveWalk: (id: string) => ipcRenderer.invoke(IPC.WALKS_ARCHIVE, id),
 
   listOpenActionItems: (input: ListOpenActionItemsInput) =>
     ipcRenderer.invoke(IPC.ACTION_ITEMS_LIST_OPEN_FOR_SUPER_PROJECT, input),
+  listAllActionItems: () => ipcRenderer.invoke(IPC.ACTION_ITEMS_LIST_ALL),
   createActionItem: (input: CreateActionItemInput) =>
     ipcRenderer.invoke(IPC.ACTION_ITEMS_CREATE, input),
+  updateActionItem: (input: UpdateActionItemInput) =>
+    ipcRenderer.invoke(IPC.ACTION_ITEMS_UPDATE, input),
   transitionActionItem: (input: TransitionActionItemInput) =>
-    ipcRenderer.invoke(IPC.ACTION_ITEMS_TRANSITION, input)
+    ipcRenderer.invoke(IPC.ACTION_ITEMS_TRANSITION, input),
+  deleteActionItem: (id: string) => ipcRenderer.invoke(IPC.ACTION_ITEMS_DELETE, id),
+  getActionItemEvents: (input: GetActionItemEventsInput) =>
+    ipcRenderer.invoke(IPC.ACTION_ITEMS_GET_EVENTS, input)
 }
 
 export type GsApi = typeof api

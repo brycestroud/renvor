@@ -27,9 +27,13 @@ import type {
   ItemHistoryRecord,
   SubmitWalkInput,
   ActionItemDto,
+  ActionItemListDto,
+  ActionItemEventDto,
   ListOpenActionItemsInput,
   CreateActionItemInput,
-  TransitionActionItemInput
+  UpdateActionItemInput,
+  TransitionActionItemInput,
+  GetActionItemEventsInput
 } from '@shared/ipc-contract'
 
 export interface GsApi {
@@ -69,10 +73,15 @@ export interface GsApi {
   copyFromLastWalk: (input: CopyFromLastWalkInput) => Promise<WalkDetail>
   getItemHistory: (input: GetItemHistoryInput) => Promise<ItemHistoryRecord[]>
   submitWalk: (input: SubmitWalkInput) => Promise<WalkDetail>
+  archiveWalk: (id: string) => Promise<void>
 
   listOpenActionItems: (input: ListOpenActionItemsInput) => Promise<ActionItemDto[]>
+  listAllActionItems: () => Promise<ActionItemListDto[]>
   createActionItem: (input: CreateActionItemInput) => Promise<ActionItemDto>
+  updateActionItem: (input: UpdateActionItemInput) => Promise<ActionItemDto>
   transitionActionItem: (input: TransitionActionItemInput) => Promise<ActionItemDto>
+  deleteActionItem: (id: string) => Promise<void>
+  getActionItemEvents: (input: GetActionItemEventsInput) => Promise<ActionItemEventDto[]>
 }
 
 declare global {
