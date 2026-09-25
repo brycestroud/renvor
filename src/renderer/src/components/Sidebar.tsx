@@ -77,7 +77,7 @@ export function Sidebar({ companyName }: { companyName: string }): JSX.Element {
           {companyName || 'Company Name'}
         </span>
         <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-          Field Ops
+          Renvor
         </span>
       </div>
 

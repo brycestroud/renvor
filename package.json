@@ -1,7 +1,7 @@
 {
-  "name": "gs-field-ops",
+  "name": "renvor",
   "version": "0.1.0",
-  "description": "GS Field Operations - desktop jobsite scoring, action items and leadership reporting",
+  "description": "Renvor - desktop jobsite scoring, action items and leadership reporting",
   "author": "Bryce Stroud",
   "private": true,
   "main": "out/main/index.js",

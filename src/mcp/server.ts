@@ -17,6 +17,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { getDb } from '@main/db/client'
 import { runMigrations } from '@main/db/migrate'
+import { migrateLegacyAppDataDirIfNeeded } from '@shared/paths'
 import { getAllSettings } from '@main/ipc/settingsRepo'
 import { listProjects, createProject, updateProject, archiveProject } from '@main/ipc/projectsRepo'
 import {
@@ -136,7 +137,7 @@ function wrapBatchIds<Result>(fn: (id: string) => Result): (args: { ids: string[
   }
 }
 
-const server = new McpServer({ name: 'gs-field-ops', version: '1.0.0' })
+const server = new McpServer({ name: 'renvor', version: '1.0.0' })
 
 // ---------------------------------------------------------------------------
 // Settings (read-only - company name/branding stay a Settings-UI-only edit,
@@ -644,10 +645,11 @@ server.registerTool(
 )
 
 async function main(): Promise<void> {
+  migrateLegacyAppDataDirIfNeeded()
   runMigrations(join(__dirname, '../../drizzle'))
   const transport = new StdioServerTransport()
   await server.connect(transport)
-  console.error('GS Field Operations MCP server ready.')
+  console.error('Renvor MCP server ready.')
 }
 
 main().catch((error) => {

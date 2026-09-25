@@ -1,5 +1,5 @@
-appId: com.gsfieldops.app
-productName: gs-field-ops
+appId: com.renvor.app
+productName: Renvor
 directories:
   output: release
   buildResources: build

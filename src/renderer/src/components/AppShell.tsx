@@ -24,7 +24,7 @@ export function AppShell(): JSX.Element {
       <Sidebar companyName={settings?.companyName ?? ''} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
-          pageLabel={pageLabels[location.pathname] ?? 'GS Field Operations'}
+          pageLabel={pageLabels[location.pathname] ?? 'Renvor'}
           lastBackupAt={settings?.lastBackupAt ?? null}
         />
         <main className="flex-1 overflow-y-auto px-6 py-6">

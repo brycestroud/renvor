@@ -4,10 +4,15 @@ import { runMigrations } from './db/migrate'
 import { registerIpcHandlers } from './ipc/registerIpc'
 import { performBackup, shouldRunDailyBackup } from './backup/backupManager'
 import { installGlobalErrorLogging, logInfo, logError } from './logger'
+import { migrateLegacyAppDataDirIfNeeded } from '@shared/paths'
 
 // Pin userData/productName so the MCP server (standalone Node process) can
 // compute the exact same %APPDATA% path without needing Electron itself.
-app.setName('gs-field-ops')
+app.setName('Renvor')
+
+// Renamed from "gs-field-ops" after Phase 10 - carry over any existing
+// database before anything tries to open the (new, otherwise-empty) one.
+migrateLegacyAppDataDirIfNeeded()
 
 installGlobalErrorLogging()
 

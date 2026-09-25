@@ -25,7 +25,7 @@ export function Onboarding(): JSX.Element {
     <div className="flex h-screen w-screen items-center justify-center bg-canvas">
       <div className="w-full max-w-md rounded-panel border border-border-subtle bg-surface-1 p-8">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-          GS Field Operations
+          Renvor
         </p>
         <h1 className="mt-1 text-xl font-semibold text-text-primary">Set up this app</h1>
         <p className="mt-2 text-sm text-text-secondary">

@@ -21,7 +21,7 @@ export function ensureLogsDir(): string {
 
 function logFilePath(): string {
   const stamp = new Date().toISOString().slice(0, 10)
-  return join(getLogsDir(), `gs-field-ops-${stamp}.log`)
+  return join(getLogsDir(), `renvor-${stamp}.log`)
 }
 
 function write(level: 'INFO' | 'WARN' | 'ERROR', message: string): void {

@@ -56,7 +56,7 @@ export async function exportJson(): Promise<PdfExportResult> {
 
   const payload: JsonBackupFile = { version: 1, exportedAt: new Date().toISOString(), tables }
 
-  const suggested = `GS-Data-Export_${new Date().toISOString().slice(0, 10)}.json`
+  const suggested = `Renvor-Data-Export_${new Date().toISOString().slice(0, 10)}.json`
   const result = await dialog.showSaveDialog({
     title: 'Export to JSON',
     defaultPath: suggested,
@@ -70,7 +70,7 @@ export async function exportJson(): Promise<PdfExportResult> {
 
 function validateShape(data: unknown): { valid: boolean; error: string | null; counts: Record<string, number> | null } {
   if (typeof data !== 'object' || data === null || !('tables' in data)) {
-    return { valid: false, error: 'Not a recognized GS Field Operations export file (missing "tables").', counts: null }
+    return { valid: false, error: 'Not a recognized Renvor export file (missing "tables").', counts: null }
   }
   const tables = (data as { tables: unknown }).tables
   if (typeof tables !== 'object' || tables === null) {

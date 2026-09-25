@@ -1,47 +1,70 @@
-// One-time generator for build/icon.ico + build/icon.png. Run with
-// `electron scripts/generate-icon.js` (a real Electron launch, not
-// ELECTRON_RUN_AS_NODE - this needs an actual renderer to draw into).
+// Generates build/icon.ico + build/icon.png from Renvor's real logo mark
+// (scripts/assets/renvor-logo-source.jpg - a black "R" mark on white, with
+// a lot of white padding around it). Run with `electron scripts/generate-icon.js`
+// (a real Electron launch, not ELECTRON_RUN_AS_NODE - needs an actual
+// renderer to use the Canvas API for auto-cropping).
 //
 // Not part of the normal build - the app itself never runs this. It exists
-// so the icon can be regenerated later (e.g. if the glyph/colors change)
-// without needing image-editing software: everything here is generated
-// from the ClipboardCheck path data already shipped in the lucide-react
-// dependency, plus the app's own default brand colors from
-// settingsSchema (see src/shared/ipc-contract.ts) - no external assets.
+// so the icon can be regenerated later (e.g. a new source logo) without
+// needing image-editing software.
 const { app, BrowserWindow } = require('electron')
-const { writeFileSync, mkdirSync } = require('fs')
+const { writeFileSync, mkdirSync, readFileSync } = require('fs')
 const { join } = require('path')
 
 const BUILD_DIR = join(__dirname, '..', 'build')
-const BG = '#0B0E12' // app canvas background
-const FG = '#FF8A24' // settingsSchema.brandPrimaryColor default
+const SOURCE_LOGO = join(__dirname, 'assets', 'renvor-logo-source.jpg')
+const MASTER = 512
 
-// Lucide "ClipboardCheck" path data (ISC license, from node_modules/lucide-react).
-const GLYPH_SVG = `
-  <rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect>
-  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-  <path d="m9 14 2 2 4-4"></path>
-`
-
-function iconHtml(sizePx) {
-  const corner = Math.round(sizePx * 0.22)
-  const glyphSize = Math.round(sizePx * 0.62)
-  // stroke-width stays in the glyph's native 24-unit coordinate space - the
-  // group's scale() transform below scales it visually along with the path
-  // geometry, so it must NOT be pre-multiplied by the scale factor too.
+function pageHtml(sourceDataUrl, size) {
   return `<!DOCTYPE html>
-<html><head><style>
-  html,body{margin:0;padding:0;background:transparent;}
-</style></head>
+<html><head><style>html,body{margin:0;padding:0;}</style></head>
 <body>
-  <svg width="${sizePx}" height="${sizePx}" viewBox="0 0 ${sizePx} ${sizePx}" xmlns="http://www.w3.org/2000/svg">
-    <rect width="${sizePx}" height="${sizePx}" rx="${corner}" fill="${BG}"/>
-    <g transform="translate(${(sizePx - glyphSize) / 2}, ${(sizePx - glyphSize) / 2}) scale(${glyphSize / 24})"
-       fill="none" stroke="${FG}" stroke-width="2.4"
-       stroke-linecap="round" stroke-linejoin="round">
-      ${GLYPH_SVG}
-    </g>
-  </svg>
+  <canvas id="out" width="${size}" height="${size}"></canvas>
+  <script>
+    const img = new Image();
+    img.onload = () => {
+      // 1. Draw the source at natural size to find the black mark's bounding box.
+      const src = document.createElement('canvas');
+      src.width = img.naturalWidth;
+      src.height = img.naturalHeight;
+      const sctx = src.getContext('2d');
+      sctx.drawImage(img, 0, 0);
+      const { data } = sctx.getImageData(0, 0, src.width, src.height);
+
+      let minX = src.width, minY = src.height, maxX = 0, maxY = 0;
+      for (let y = 0; y < src.height; y++) {
+        for (let x = 0; x < src.width; x++) {
+          const i = (y * src.width + x) * 4;
+          const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+          if (r < 245 || g < 245 || b < 245) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      const boxW = maxX - minX;
+      const boxH = maxY - minY;
+
+      // 2. Composite the cropped mark, centered with padding, onto a white square.
+      const out = document.getElementById('out');
+      const octx = out.getContext('2d');
+      octx.fillStyle = '#FFFFFF';
+      octx.fillRect(0, 0, ${size}, ${size});
+
+      const padded = Math.max(boxW, boxH) * 1.32;
+      const scale = ${size} / padded;
+      const drawW = boxW * scale;
+      const drawH = boxH * scale;
+      const dx = (${size} - drawW) / 2;
+      const dy = (${size} - drawH) / 2;
+      octx.drawImage(img, minX, minY, boxW, boxH, dx, dy, drawW, drawH);
+
+      document.title = 'ready';
+    };
+    img.src = ${JSON.stringify(sourceDataUrl)};
+  </script>
 </body></html>`
 }
 
@@ -61,14 +84,14 @@ function buildIco(pngsBySize) {
   for (const size of sizes) {
     const png = pngsBySize[size]
     const entry = Buffer.alloc(16)
-    entry.writeUInt8(size >= 256 ? 0 : size, 0) // width (0 = 256)
-    entry.writeUInt8(size >= 256 ? 0 : size, 1) // height (0 = 256)
-    entry.writeUInt8(0, 2) // color palette
-    entry.writeUInt8(0, 3) // reserved
-    entry.writeUInt16LE(1, 4) // color planes
-    entry.writeUInt16LE(32, 6) // bits per pixel
-    entry.writeUInt32LE(png.length, 8) // size of image data
-    entry.writeUInt32LE(offset, 12) // offset of image data
+    entry.writeUInt8(size >= 256 ? 0 : size, 0)
+    entry.writeUInt8(size >= 256 ? 0 : size, 1)
+    entry.writeUInt8(0, 2)
+    entry.writeUInt8(0, 3)
+    entry.writeUInt16LE(1, 4)
+    entry.writeUInt16LE(32, 6)
+    entry.writeUInt32LE(png.length, 8)
+    entry.writeUInt32LE(offset, 12)
     dirEntries.push(entry)
     imageBuffers.push(png)
     offset += png.length
@@ -80,7 +103,9 @@ function buildIco(pngsBySize) {
 app.whenReady().then(async () => {
   mkdirSync(BUILD_DIR, { recursive: true })
 
-  const MASTER = 256
+  const sourceBuf = readFileSync(SOURCE_LOGO)
+  const sourceDataUrl = `data:image/jpeg;base64,${sourceBuf.toString('base64')}`
+
   const win = new BrowserWindow({
     width: MASTER,
     height: MASTER,
@@ -88,14 +113,21 @@ app.whenReady().then(async () => {
     frame: false,
     show: false
   })
-  await win.loadURL(`data:text/html;charset=UTF-8,${encodeURIComponent(iconHtml(MASTER))}`)
-  await new Promise((r) => setTimeout(r, 150)) // let the SVG paint
+  await win.loadURL(`data:text/html;charset=UTF-8,${encodeURIComponent(pageHtml(sourceDataUrl, MASTER))}`)
+
+  // Wait for the in-page <script> to finish cropping/compositing (sets document.title = 'ready').
+  await win.webContents.executeJavaScript(`
+    new Promise((resolve) => {
+      if (document.title === 'ready') return resolve();
+      const check = setInterval(() => {
+        if (document.title === 'ready') { clearInterval(check); resolve(); }
+      }, 30);
+    })
+  `)
 
   let masterImage = await win.capturePage()
   const { width, height } = masterImage.getSize()
   if (width !== MASTER || height !== MASTER) {
-    // Different DPI scaling can still shift the captured pixel size from
-    // the logical window size - normalize back to a clean square master.
     masterImage = masterImage.resize({ width: MASTER, height: MASTER, quality: 'best' })
   }
   writeFileSync(join(BUILD_DIR, 'icon.png'), masterImage.toPNG())

@@ -71,7 +71,7 @@ function safeFilePart(s: string): string {
 
 export async function exportWalkPdf(walkId: string): Promise<PdfExportResult> {
   const walk = getWalk(walkId)
-  const suggested = `GS-Walk_${safeFilePart(walk.superintendentName)}_${walk.date}.pdf`
+  const suggested = `Renvor-Walk_${safeFilePart(walk.superintendentName)}_${walk.date}.pdf`
   const filePath = await pickSaveLocation(suggested)
   if (!filePath) return { canceled: true, path: null }
 
@@ -82,7 +82,7 @@ export async function exportWalkPdf(walkId: string): Promise<PdfExportResult> {
 
 export async function exportFullReportPdf(weekStart: string): Promise<PdfExportResult> {
   const data = getFullReportData(weekStart)
-  const suggested = `GS-Report_Full_${weekStart}.pdf`
+  const suggested = `Renvor-Report_Full_${weekStart}.pdf`
   const filePath = await pickSaveLocation(suggested)
   if (!filePath) return { canceled: true, path: null }
 
@@ -97,7 +97,7 @@ export async function exportExecSummaryPdf(
   selectedNoteIds: string[]
 ): Promise<PdfExportResult> {
   const data = getExecSummaryData(weekStart, selectedNoteIds)
-  const suggested = `GS-Report_Exec_${weekStart}.pdf`
+  const suggested = `Renvor-Report_Exec_${weekStart}.pdf`
   const filePath = await pickSaveLocation(suggested)
   if (!filePath) return { canceled: true, path: null }
 
