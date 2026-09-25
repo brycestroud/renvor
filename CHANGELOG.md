@@ -1,5 +1,90 @@
 # Changelog
 
+## Phase 9 — Procore Scaffolding (2026-09-25)
+
+You re-sent the original build spec this phase after context compaction
+lost the exact text - Section 7 turned out to specify this phase precisely
+(typed interface, mock client, feature flag, hidden UI using mock data,
+integration doc), so this phase follows it directly rather than guessing.
+
+### Added
+- `src/main/integrations/procore/` - `ProcoreClient` typed interface
+  exactly as specified (`isConnected`, `listProjects`, `listDailyLogs`,
+  `listObservations`, `listInspections`), `MockProcoreClient` (deterministic
+  per project+date-range fake data via a seeded PRNG - same inputs always
+  return the same mock numbers), and `getProcoreClient()`, the single
+  factory function every caller goes through so swapping in a real client
+  later is a one-line change.
+- `settings.procoreEnabled` feature flag (default off). All new Procore UI
+  is gated behind it; when it's off nothing changes anywhere in the app.
+- Job Walk: a "Procore this week" panel (daily logs / observations /
+  inspections for the walk's project+super+week) plus a hint next to the
+  Record Keeping "Daily reports filled out fully with quality photos" item
+  - the exact example the spec calls out - showing the mock daily-log count.
+- Action Items: "Import from Procore" button (next to a project filter)
+  opens a dialog listing open mock observations with checkboxes; import
+  creates them as action items with `source: 'procore'` and a
+  `sourceSummary` referencing the observation number.
+- Project and Superintendent edit forms: Procore ID fields
+  (`procoreProjectId`/`procoreCompanyId` on projects, `procoreUserId` on
+  superintendents - the DB columns and IPC schema already existed since
+  Phase 1, only the UI was missing) - hidden unless `procoreEnabled` is on,
+  per spec 5.6 ("leave space for the Procore ID fields... hide them until
+  Procore is enabled").
+- Procore page: kept the existing "coming soon" + disabled Connect button
+  as-is (that part of the integration genuinely isn't built), added a
+  "Preview with mock data" toggle that flips `procoreEnabled` so the above
+  can be reviewed without a real Procore account.
+- `docs/PROCORE_INTEGRATION.md` - where a real client, OAuth flow (main-
+  process-only, per the security rules), and `safeStorage`-based credential
+  storage plug in later, plus exactly which files change and which don't.
+- Fixed two real gaps in existing code found while wiring this up: (1)
+  `createActionItemInput`/`createActionItem` never accepted `sourceSummary`
+  despite the DB column and DTO already having it - only `legacyImport.ts`'s
+  raw insert ever set it. Needed for a meaningful Procore-import summary, so
+  extended the create path generally rather than special-casing Procore.
+  (2) Same story for `Superintendent.procoreUserId` and the two Procore
+  fields on `Project` - present in the schema/DB since Phase 1 but never in
+  the create/update zod input schemas, so there was no way to ever set them
+  before this phase.
+
+### Decisions made without asking again
+- The sidebar's Procore nav item stays always-visible with no gating - per
+  spec 5.1's own layout description ("Procore... shown as 'Coming soon' for
+  now"), the always-visible nav item IS the intended coming-soon state; only
+  the *mock-data-consuming* UI (panel, import button, ID fields) is gated
+  behind the flag per Section 7's "when it's off, all Procore UI is
+  hidden," read as referring to this phase's new UI specifically.
+- "Procore this week" uses the Monday-Sunday week containing the walk's
+  date (same week-math as Reports), not a rolling 7-day window - matches
+  how "this week" is defined everywhere else in the app.
+- "Import from Procore" looks back 180 days for open observations rather
+  than requiring a date range from the GS - a real job's open observations
+  could be older than one week; 180 days comfortably covers anything still
+  open without asking for extra input on a scaffolding feature.
+
+### Verified
+- Per the standing instruction - no computer-use click-through. Verified
+  via:
+- `npx tsc --noEmit` clean on both configs; `npm run build` succeeds
+  (`out/main/index.js` grew from the two new repo functions and their
+  imports; no new build entries needed since Procore isn't exposed over
+  MCP - the spec never asked for that).
+- `npx vitest run` - 19/19 passing (12 existing + 7 new
+  `MockProcoreClient` tests covering determinism, date-range filtering,
+  per-project variation, and valid status enums).
+- A real end-to-end smoke test (via `ELECTRON_RUN_AS_NODE` + `tsx`,
+  against a scratch database, never the live file) exercising the full
+  chain: create project+super with Procore IDs set -> fetch the walk panel
+  data -> list open observations -> import 2 of them as action items ->
+  confirm both landed with `source: 'procore'` and a correct
+  `sourceSummary`, and that the action-item count increased by exactly 2.
+  All passed.
+- Bryce, please click through this one yourself: turn on "Preview with
+  mock data" on the Procore page, open a Job Walk for a project/super pair
+  to see the panel and the Record Keeping hint, and try "Import from
+  Procore" on Action Items with a project selected.
+
 ## Phase 8 — MCP Connector (2026-09-25)
 
 ### Added (batch/composite tools, same-day follow-up)

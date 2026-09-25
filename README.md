@@ -7,7 +7,7 @@ accounts. The only network calls the app ever makes are the optional AI
 extraction feature and the future Procore integration; everything else,
 including the MCP server, is local.
 
-Status: **Phases 1-8 complete** (Foundation through the MCP connector). See
+Status: **Phases 1-9 complete** (Foundation through Procore scaffolding). See
 `CHANGELOG.md` for what's built so far and the build spec for the full phase
 plan.
 
@@ -104,10 +104,22 @@ Settings (company name, brand colors, etc.) are exposed read-only over MCP
 Action items created via MCP use `source: "mcp"` so their origin is honest
 in the UI rather than looking hand-entered.
 
+## Procore (scaffolding only, mock data)
+
+No real Procore connection exists yet — this is intentionally scaffolding
+per the build spec's Section 7 ("don't build the integration yet"). Turn on
+"Preview with mock data" on the Procore page (`settings.procoreEnabled`) to
+see the Procore-shaped UI (a "Procore this week" panel on Job Walk, "Import
+from Procore" on Action Items, and Procore ID fields on Project/
+Superintendent forms) render against realistic fake data instead of a real
+API. See `docs/PROCORE_INTEGRATION.md` for exactly where a real client,
+OAuth flow, and credential storage plug in later.
+
 ## Project layout
 
 ```
-src/main        Electron main process: db, IPC handlers, migrations, seed
+src/main        Electron main process: db, IPC handlers, migrations, seed,
+                integrations/procore (typed interface + mock client)
 src/preload     Typed contextBridge — the only thing the renderer can call
 src/renderer    React UI
 src/shared      Code shared by main/preload/renderer/mcp: scoring, IPC
@@ -116,6 +128,7 @@ src/mcp         Standalone MCP server (built to out/main/mcp.js alongside
                 the Electron main process; see MCP section above)
 scripts/        run-mcp.js — the ELECTRON_RUN_AS_NODE launcher for src/mcp
 drizzle/        Generated SQL migrations — do not hand-edit
+docs/           PROCORE_INTEGRATION.md — where the real Procore client plugs in
 ```
 
 ## Troubleshooting
