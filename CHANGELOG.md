@@ -1,5 +1,115 @@
 # Changelog
 
+## Phase 10 — Polish & Package (2026-09-25)
+
+Started with a full audit against the build spec's Section 8 quality bar
+(confirmations, empty states, error handling, test coverage, Playwright,
+app version display, logging, installer icons) before writing any code, so
+this phase closes documented gaps rather than guessing at scope.
+
+### Added
+- **Error handling**: 4 screens had mutations that silently swallowed
+  failures (no `onError`, nothing shown to the user, nothing logged) -
+  found by the audit, fixed in all of them: Job Walk's "Start Walk",
+  Action Items' close/carry/reopen and delete, and every mutation in the
+  Checklist and People settings panels (weight edit, item rename/frequency/
+  active toggle, add item, reorder, remove person). Each now surfaces the
+  real error message inline instead of nothing happening.
+- **Reports empty state**: "No data for this week yet" told the user
+  nothing useful; now names the actual week range and says what to do
+  (pick a different week, or complete a walk).
+- **Unit tests for report assembly and the legacy importer** (previously
+  zero coverage - can't run a real DB under plain-Node `vitest run` since
+  `better-sqlite3` here needs Electron's Node ABI, so testing the DB-facing
+  functions directly isn't possible without a lot of extra machinery).
+  Extracted the actual business-logic decisions into pure, DB-free
+  functions and tested those instead: `isRedFlagCategory` and
+  `computeActionItemStats` (both now in `src/shared/scoring.ts`, used by
+  `reportsRepo.ts`'s red-flag and action-item-stats assembly), and exported
+  `legacyId`/`itemText`/`parseLegacyFile` from `legacyImport.ts` for direct
+  testing. 21 new test cases; suite is now 38/38 across 3 files. Also added
+  `vitest.config.ts` with the `@shared`/`@main` path aliases - the legacy-
+  importer test was the first to transitively need them and vitest didn't
+  have any alias config until now.
+- **App version + logs**: new Settings > About tab shows the app version
+  (the IPC bridge for this existed since Phase 1 but was never called from
+  any UI) and an "Open logs folder" button. Backing it: `src/main/logger.ts`,
+  a small file logger (`app.getPath('logs')`, one file per day) wired into
+  app startup, uncaught exceptions/rejections, and daily/exit backup
+  success or failure.
+- **Playwright E2E smoke test** (`e2e/smoke.spec.ts`, `playwright.config.ts`,
+  `npm run test:e2e`) - the exact flow the spec calls for: create a project
+  → create a superintendent → complete and submit a walk → the action item
+  appears on Action Items → the report shows the walk → PDF export produces
+  a real file. Runs against the actual built app (Playwright's Electron
+  mode) with a scratch APPDATA directory, never the real database. The
+  native save dialog is stubbed via `electronApp.evaluate` so PDF export
+  doesn't need a human at a file picker.
+- **Installer icon**: `build/icon.ico` (7 sizes, 16-256px) + `build/icon.png`,
+  wired into `electron-builder.yml`'s `win.icon` and the dev BrowserWindow.
+  No external design tool or asset needed - `scripts/generate-icon.js` uses
+  Electron itself (an offscreen `BrowserWindow` + `capturePage()`) to
+  rasterize an SVG built from the `lucide-react` "ClipboardCheck" icon
+  (already a dependency, ISC-licensed) in the app's own default brand
+  colors (`#0B0E12` canvas, `#FF8A24` brand) - not any specific company's
+  branding, since the app is white-labeled per install.
+
+### Real bugs found and fixed
+- **Action items created from Job Walk didn't appear on Action Items or
+  Dashboard for up to 30 seconds.** Caught by the Playwright smoke test,
+  not by inspection - the test genuinely failed on a real bug, not a test
+  artifact (confirmed by dumping the DB directly via `electronApp.evaluate`
+  mid-test: the row existed with `status: "open"` immediately, the UI just
+  wasn't refetching it). Root cause: `NewActionItemForm`'s create mutation
+  in `jobwalk/ActionItemsSection.tsx` only invalidated the `open-action-
+  items` query key, never `action-items-all` - and the app's QueryClient
+  has a 30-second global `staleTime`, so the Dashboard/Action Items page's
+  already-cached (often empty) list wouldn't refetch until that window
+  passed. Fixed there and in the matching Close/Carry mutation in the same
+  file (`ReviewRow`), which had the identical gap. Also fixed the reverse
+  direction for consistency: Action Items page's transition/delete
+  mutations weren't invalidating `open-action-items`, so closing/deleting
+  an item there could leave Job Walk's "must resolve before submitting"
+  review list stale for the same 30 seconds.
+
+### Decisions made without asking again
+- Onboarding and Settings weren't given a literal `EmptyState` component
+  (Onboarding is a first-run wizard, not a list; Settings mostly delegates
+  to panels like People/Checklist that already have their own inline
+  "no X yet" messaging) - the spec's actual requirement ("tell the user
+  what to do next") was already met there, so this phase only touched
+  Reports, the one screen the audit found genuinely lacking it.
+- The e2e test completes a walk via "Mark all remaining N/A" rather than
+  clicking through individual 1-5 score buttons - a full smoke test needs
+  a submitted walk, not a demonstration of the score-selector UI itself
+  (which isn't what this test is for), and per-item button targeting would
+  be far more brittle for little added coverage.
+- `build:win`'s pre-existing Windows-Developer-Mode/symlink limitation
+  (documented since Phase 1) meant the new icon can't be verified embedded
+  in an actual `.exe` on this machine - confirmed the icon file itself is
+  valid (`file build/icon.ico` reports a correct 7-size Windows icon
+  resource) and the electron-builder config is syntactically correct, but
+  flagging that the final embed step is unverified rather than claiming
+  it's confirmed working.
+
+### Verified
+- Per the standing instruction - no computer-use click-through. Verified
+  via:
+- `npx tsc --noEmit` clean on both configs.
+- `npx vitest run` - 38/38 passing (17 new scoring.ts cases + 14 new
+  legacy-importer cases, on top of the existing 7 Procore mock tests).
+- `npx playwright test` - the full spec-mandated smoke test passes end to
+  end against the real built app, including a real PDF file landing on
+  disk at the stubbed save path.
+- `npm run build` succeeds; `build/icon.ico` and `build/icon.png` verified
+  as valid image files via the `file` command (correct dimensions, correct
+  ICO structure, no distortion after fixing an early bug where the capture
+  window's title bar shrank the captured image to a non-square 240x191).
+- Bryce, please do these yourself: enable Windows Developer Mode and run
+  `npm run build:win` to confirm the installer builds and the icon shows up
+  correctly in the taskbar/installer; run `npm run test:e2e` once yourself
+  to see it pass live.
+
 ## Phase 9 — Procore Scaffolding (2026-09-25)
 
 You re-sent the original build spec this phase after context compaction

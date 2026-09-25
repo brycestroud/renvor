@@ -7,7 +7,7 @@ accounts. The only network calls the app ever makes are the optional AI
 extraction feature and the future Procore integration; everything else,
 including the MCP server, is local.
 
-Status: **Phases 1-9 complete** (Foundation through Procore scaffolding). See
+Status: **Phases 1-10 complete** (Foundation through Polish & Package). See
 `CHANGELOG.md` for what's built so far and the build spec for the full phase
 plan.
 
@@ -46,20 +46,43 @@ npm run build:win   # also packages a Windows NSIS installer to release/
 Security > For developers) or an elevated terminal — electron-builder needs
 to extract a signing-tools archive that uses symlinks, and creating symlinks
 without one of those two is blocked by Windows. This is a one-time machine
-setting, not a project issue.
+setting, not a project issue. The installer icon (`build/icon.ico`) is
+already generated and wired up in `electron-builder.yml`; it just can't be
+verified end-to-end (embedded into the actual `.exe`) on this machine until
+that setting is on, since even `electron-builder --win --dir` hits the same
+symlink block. See `scripts/generate-icon.js` if the icon ever needs
+regenerating — it's built entirely from the app's own default brand colors
+and an existing `lucide-react` icon, no external image assets.
 
 ## Tests
 
 ```bash
-npm test          # vitest (scoring, due-date, overdue logic)
+npm test          # vitest - pure logic: scoring, due-date/frequency, overdue,
+                   # report red-flags/stats, legacy-importer parsing, Procore mock
 npm run typecheck
+npm run test:e2e   # Playwright, against the real built app - run `npm run build` first
 ```
+
+`test:e2e` runs the spec-mandated smoke test end to end against a scratch,
+throwaway database (never your real one): create a project → create a
+superintendent → complete and submit a walk → the action item appears on
+Action Items → the report shows the walk → PDF export produces a real file
+on disk. It drives the actual UI (Playwright's Electron mode), not internal
+APIs, so it catches real UI/wiring bugs — it already caught and fixed one:
+action items created from Job Walk weren't invalidating the Action Items /
+Dashboard cache, so they wouldn't appear there for up to 30 seconds.
 
 ## Data & backups
 
 The SQLite database lives in `%APPDATA%\gs-field-ops\gs-dashboard.db`.
 Automatic daily + on-quit backups, manual backup/restore, and JSON
 export/import are all in Settings > Backup & Data (Phase 7).
+
+## Logs
+
+One file per day in `app.getPath('logs')` (the OS-standard per-app log
+folder), covering app startup, uncaught errors, and backup results. Open it
+from Settings > About > "Open logs folder" — also shows the app version.
 
 ## MCP server (Claude connector)
 
@@ -126,9 +149,12 @@ src/shared      Code shared by main/preload/renderer/mcp: scoring, IPC
                 contract (zod), seed data, path resolution
 src/mcp         Standalone MCP server (built to out/main/mcp.js alongside
                 the Electron main process; see MCP section above)
-scripts/        run-mcp.js — the ELECTRON_RUN_AS_NODE launcher for src/mcp
+scripts/        run-mcp.js — the ELECTRON_RUN_AS_NODE launcher for src/mcp;
+                generate-icon.js — one-time build/icon.ico generator
 drizzle/        Generated SQL migrations — do not hand-edit
 docs/           PROCORE_INTEGRATION.md — where the real Procore client plugs in
+build/          icon.ico / icon.png for electron-builder (installer + window icon)
+e2e/            Playwright smoke test (npm run test:e2e) — see Tests above
 ```
 
 ## Troubleshooting
