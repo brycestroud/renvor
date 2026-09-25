@@ -25,7 +25,10 @@ import {
   type UpdateActionItemInput,
   type TransitionActionItemInput,
   type GetActionItemEventsInput,
-  type GetMatrixInput
+  type GetMatrixInput,
+  type GetExecSummaryDataInput,
+  type ExportExecSummaryPdfInput,
+  type ExportWalkPdfInput
 } from '@shared/ipc-contract'
 
 const api = {
@@ -93,7 +96,22 @@ const api = {
 
   getDashboardMatrix: (input: GetMatrixInput) => ipcRenderer.invoke(IPC.DASHBOARD_GET_MATRIX, input),
   getSuperintendentWalkHistory: (superintendentId: string) =>
-    ipcRenderer.invoke(IPC.DASHBOARD_GET_SUPER_WALK_HISTORY, superintendentId)
+    ipcRenderer.invoke(IPC.DASHBOARD_GET_SUPER_WALK_HISTORY, superintendentId),
+
+  getWeekNotes: (weekStart: string) => ipcRenderer.invoke(IPC.REPORTS_GET_WEEK_NOTES, weekStart),
+  getFullReportData: (weekStart: string) => ipcRenderer.invoke(IPC.REPORTS_GET_FULL_DATA, { weekStart }),
+  getExecSummaryData: (input: GetExecSummaryDataInput) =>
+    ipcRenderer.invoke(IPC.REPORTS_GET_EXEC_DATA, input),
+  exportFullReportPdf: (weekStart: string) =>
+    ipcRenderer.invoke(IPC.REPORTS_EXPORT_FULL_PDF, { weekStart }),
+  exportExecSummaryPdf: (input: ExportExecSummaryPdfInput) =>
+    ipcRenderer.invoke(IPC.REPORTS_EXPORT_EXEC_PDF, input),
+  listReportSnapshots: () => ipcRenderer.invoke(IPC.REPORTS_LIST_SNAPSHOTS),
+  openSnapshotPdf: (id: string) => ipcRenderer.invoke(IPC.REPORTS_OPEN_SNAPSHOT_PDF, id),
+
+  exportWalkPdf: (input: ExportWalkPdfInput) => ipcRenderer.invoke(IPC.WALKS_EXPORT_PDF, input),
+
+  notifyPrintReady: () => ipcRenderer.send(IPC.PRINT_MARK_READY)
 }
 
 export type GsApi = typeof api

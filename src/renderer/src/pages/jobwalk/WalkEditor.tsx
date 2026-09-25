@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Archive, CheckCircle2, ChevronLeft, ChevronRight, FileText, Mail, RotateCcw } from 'lucide-react'
 import { CategorySection } from './CategorySection'
 import { ActionItemsSection } from './ActionItemsSection'
+import { EmailWalkDialog } from './EmailWalkDialog'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { inputClass, selectClass } from '../../components/FormField'
 import { useAutosaveText } from '../../lib/useAutosaveText'
@@ -49,6 +50,13 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
   const [focusedItemId, setFocusedItemId] = useState<string | null>(null)
   const [savedFlash, setSavedFlash] = useState(false)
   const [archiving, setArchiving] = useState(false)
+  const [emailing, setEmailing] = useState(false)
+  const [pdfMessage, setPdfMessage] = useState<string | null>(null)
+
+  const exportPdf = useMutation({
+    mutationFn: () => gsApi().exportWalkPdf({ walkId }),
+    onSuccess: (result) => setPdfMessage(result.canceled ? null : `Saved to ${result.path}`)
+  })
 
   const activeCategories = useMemo(
     () => (categories ?? []).filter((c) => c.active).sort((a, b) => a.sortOrder - b.sortOrder),
@@ -256,16 +264,15 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
             </span>
             <div className="flex gap-2">
               <button
-                disabled
-                className="flex cursor-not-allowed items-center gap-1 rounded-control border border-border bg-surface-2 px-2.5 py-1 text-xs text-text-disabled"
-                title="Coming in Phase 6"
+                onClick={() => exportPdf.mutate()}
+                disabled={exportPdf.isPending}
+                className="flex items-center gap-1 rounded-control border border-border bg-surface-2 px-2.5 py-1 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-60"
               >
-                <FileText size={12} /> Export PDF
+                <FileText size={12} /> {exportPdf.isPending ? 'Exporting…' : 'Export PDF'}
               </button>
               <button
-                disabled
-                className="flex cursor-not-allowed items-center gap-1 rounded-control border border-border bg-surface-2 px-2.5 py-1 text-xs text-text-disabled"
-                title="Coming in Phase 6"
+                onClick={() => setEmailing(true)}
+                className="flex items-center gap-1 rounded-control border border-border bg-surface-2 px-2.5 py-1 text-xs text-text-secondary hover:bg-surface-hover"
               >
                 <Mail size={12} /> Email to…
               </button>
@@ -278,6 +285,7 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
             </div>
           </div>
         )}
+        {pdfMessage && <p className="mt-2 text-xs text-text-muted">{pdfMessage}</p>}
 
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <label className="flex flex-col gap-1 text-xs">
@@ -473,6 +481,8 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
           </button>
         )}
       </div>
+
+      {emailing && <EmailWalkDialog walk={walk} onClose={() => setEmailing(false)} />}
 
       {archiving && (
         <ConfirmDialog

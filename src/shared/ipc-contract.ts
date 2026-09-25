@@ -54,7 +54,19 @@ export const IPC = {
   ACTION_ITEMS_GET_EVENTS: 'actionItems:getEvents',
 
   DASHBOARD_GET_MATRIX: 'dashboard:getMatrix',
-  DASHBOARD_GET_SUPER_WALK_HISTORY: 'dashboard:getSuperWalkHistory'
+  DASHBOARD_GET_SUPER_WALK_HISTORY: 'dashboard:getSuperWalkHistory',
+
+  REPORTS_GET_WEEK_NOTES: 'reports:getWeekNotes',
+  REPORTS_GET_FULL_DATA: 'reports:getFullData',
+  REPORTS_GET_EXEC_DATA: 'reports:getExecData',
+  REPORTS_EXPORT_FULL_PDF: 'reports:exportFullPdf',
+  REPORTS_EXPORT_EXEC_PDF: 'reports:exportExecPdf',
+  REPORTS_LIST_SNAPSHOTS: 'reports:listSnapshots',
+  REPORTS_OPEN_SNAPSHOT_PDF: 'reports:openSnapshotPdf',
+
+  WALKS_EXPORT_PDF: 'walks:exportPdf',
+
+  PRINT_MARK_READY: 'print:markReady'
 } as const
 
 export const settingsSchema = z.object({
@@ -70,7 +82,8 @@ export const settingsSchema = z.object({
   aiEnabled: z.boolean().default(false),
   escalationMode: z.enum(['record_only', 'mailto', 'smtp']).default('mailto'),
   backupFolder: z.string().nullable().default(null),
-  lastBackupAt: z.string().nullable().default(null)
+  lastBackupAt: z.string().nullable().default(null),
+  lastPdfExportFolder: z.string().nullable().default(null)
 })
 
 export type AppSettings = z.infer<typeof settingsSchema>
@@ -475,3 +488,114 @@ export interface WalkHistoryEntry {
   status: WalkStatus
   categoryScores: MatrixCategoryScore[]
 }
+
+// ---------------------------------------------------------------------------
+// Reports & PDF
+// ---------------------------------------------------------------------------
+export type ReportType = 'full' | 'executive'
+
+export interface WeekNote {
+  /** Synthetic id: `${walkId}:overall` | `${walkId}:followup` | `${walkId}:cat:${categoryId}` */
+  id: string
+  walkId: string
+  superintendentName: string
+  projectName: string
+  source: 'overall' | 'followup' | 'category'
+  categoryName: string | null
+  text: string
+}
+
+export interface RedFlag {
+  walkId: string
+  superintendentName: string
+  projectName: string
+  categoryName: string
+  score: number
+}
+
+export interface ReportWalkSection {
+  walkId: string
+  date: string
+  superintendentName: string
+  projectName: string
+  visitType: VisitType
+  overallScore: number | null
+  categoryScores: Array<{ categoryId: string; categoryName: string; average: number | null }>
+  overallNotes: string | null
+  followupNotes: string | null
+  categoryNotes: Array<{ categoryName: string; notes: string }>
+}
+
+export interface ReportSummaryStats {
+  walksCompleted: number
+  supersWalked: number
+  totalActiveSupers: number
+  averageScore: number | null
+}
+
+export interface ReportEscalatedItem {
+  id: string
+  text: string
+  superintendentName: string | null
+  projectName: string | null
+}
+
+export interface FullReportData {
+  companyName: string
+  preparedBy: string
+  weekStart: string
+  weekEnd: string
+  escalatedItems: ReportEscalatedItem[]
+  summary: ReportSummaryStats
+  redFlags: RedFlag[]
+  walks: ReportWalkSection[]
+  actionItemsOpened: number
+  actionItemsClosed: number
+  actionItemsOverdue: number
+  supersNotWalked: string[]
+}
+
+export const getWeekReportInput = z.object({ weekStart: z.string() })
+export type GetWeekReportInput = z.infer<typeof getWeekReportInput>
+
+export interface ExecSummaryData {
+  companyName: string
+  preparedBy: string
+  weekStart: string
+  weekEnd: string
+  summary: ReportSummaryStats
+  escalatedItems: ReportEscalatedItem[]
+  redFlags: RedFlag[]
+  selectedNotes: WeekNote[]
+}
+
+export const getExecSummaryDataInput = z.object({
+  weekStart: z.string(),
+  selectedNoteIds: z.array(z.string())
+})
+export type GetExecSummaryDataInput = z.infer<typeof getExecSummaryDataInput>
+
+export const exportExecSummaryPdfInput = getExecSummaryDataInput
+export type ExportExecSummaryPdfInput = z.infer<typeof exportExecSummaryPdfInput>
+
+export interface PdfExportResult {
+  canceled: boolean
+  path: string | null
+}
+
+export interface ReportSnapshotDto {
+  id: string
+  reportType: ReportType
+  weekStart: string
+  pdfPath: string | null
+  preparedBy: string | null
+  createdAt: string
+}
+
+export interface OpenSnapshotResult {
+  success: boolean
+  error: string | null
+}
+
+export const exportWalkPdfInput = z.object({ walkId: z.string() })
+export type ExportWalkPdfInput = z.infer<typeof exportWalkPdfInput>

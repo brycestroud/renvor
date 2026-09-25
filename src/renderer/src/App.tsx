@@ -13,6 +13,8 @@ import { SuperintendentDetail } from './pages/SuperintendentDetail'
 import { Projects } from './pages/Projects'
 import { Procore } from './pages/Procore'
 import { Settings } from './pages/Settings'
+import { PrintWalk } from './pages/print/PrintWalk'
+import { PrintReport } from './pages/print/PrintReport'
 
 function useAppliedTheme(theme: 'light' | 'dark' | 'system' | undefined): void {
   useEffect(() => {
@@ -57,6 +59,8 @@ export function App(): JSX.Element | null {
           <Route path="/procore" element={<Procore />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
+        <Route path="/print/walk/:id" element={<PrintWalk />} />
+        <Route path="/print/report/:type/:weekStart" element={<PrintReport />} />
       </Routes>
     </HashRouter>
   )

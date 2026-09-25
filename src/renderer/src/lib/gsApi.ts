@@ -36,7 +36,16 @@ import type {
   GetActionItemEventsInput,
   DashboardMatrix,
   GetMatrixInput,
-  WalkHistoryEntry
+  WalkHistoryEntry,
+  WeekNote,
+  FullReportData,
+  ExecSummaryData,
+  GetExecSummaryDataInput,
+  ExportExecSummaryPdfInput,
+  ExportWalkPdfInput,
+  PdfExportResult,
+  ReportSnapshotDto,
+  OpenSnapshotResult
 } from '@shared/ipc-contract'
 
 export interface GsApi {
@@ -88,6 +97,18 @@ export interface GsApi {
 
   getDashboardMatrix: (input: GetMatrixInput) => Promise<DashboardMatrix>
   getSuperintendentWalkHistory: (superintendentId: string) => Promise<WalkHistoryEntry[]>
+
+  getWeekNotes: (weekStart: string) => Promise<WeekNote[]>
+  getFullReportData: (weekStart: string) => Promise<FullReportData>
+  getExecSummaryData: (input: GetExecSummaryDataInput) => Promise<ExecSummaryData>
+  exportFullReportPdf: (weekStart: string) => Promise<PdfExportResult>
+  exportExecSummaryPdf: (input: ExportExecSummaryPdfInput) => Promise<PdfExportResult>
+  listReportSnapshots: () => Promise<ReportSnapshotDto[]>
+  openSnapshotPdf: (id: string) => Promise<OpenSnapshotResult>
+
+  exportWalkPdf: (input: ExportWalkPdfInput) => Promise<PdfExportResult>
+
+  notifyPrintReady: () => void
 }
 
 declare global {

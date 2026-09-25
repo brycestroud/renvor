@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   Line,
   LineChart,
@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts'
-import { ArrowLeft, FileText, ListChecks, Mail, Pencil } from 'lucide-react'
+import { ArrowLeft, FileText, ListChecks, Pencil } from 'lucide-react'
 import { EmptyState } from '../components/EmptyState'
 import { SuperintendentFormModal, nccerLabels } from '../components/SuperintendentFormModal'
 import { gsApi } from '../lib/gsApi'
@@ -33,6 +33,12 @@ export function SuperintendentDetail(): JSX.Element {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
+  const [pdfMessage, setPdfMessage] = useState<string | null>(null)
+
+  const exportPdf = useMutation({
+    mutationFn: (walkId: string) => gsApi().exportWalkPdf({ walkId }),
+    onSuccess: (result) => setPdfMessage(result.canceled ? null : `Saved to ${result.path}`)
+  })
   const [compareCategoryId, setCompareCategoryId] = useState('')
 
   const { data: supers } = useQuery({
@@ -247,6 +253,7 @@ export function SuperintendentDetail(): JSX.Element {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <h2 className="mb-3 text-sm font-semibold text-text-primary">Walk History</h2>
+          {pdfMessage && <p className="mb-2 text-xs text-text-muted">{pdfMessage}</p>}
           {isLoading && <p className="text-sm text-text-muted">Loading…</p>}
           {!isLoading && chronological.length === 0 && (
             <EmptyState
@@ -305,11 +312,12 @@ export function SuperintendentDetail(): JSX.Element {
                         </td>
                         <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
                           <button
-                            disabled
-                            title="Coming in Phase 6"
-                            className="cursor-not-allowed text-xs text-text-disabled"
+                            onClick={() => exportPdf.mutate(walk.walkId)}
+                            disabled={exportPdf.isPending}
+                            title="Export PDF"
+                            className="text-xs text-info hover:underline disabled:cursor-not-allowed disabled:text-text-disabled disabled:no-underline"
                           >
-                            <Mail size={13} className="inline" />
+                            <FileText size={13} className="inline" />
                           </button>
                         </td>
                       </tr>

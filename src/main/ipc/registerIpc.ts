@@ -1,4 +1,4 @@
-import { ipcMain, app } from 'electron'
+import { ipcMain, app, shell } from 'electron'
 import {
   IPC,
   setManySettingsInput,
@@ -25,7 +25,11 @@ import {
   updateActionItemInput,
   transitionActionItemInput,
   getActionItemEventsInput,
-  getMatrixInput
+  getMatrixInput,
+  getWeekReportInput,
+  getExecSummaryDataInput,
+  exportExecSummaryPdfInput,
+  exportWalkPdfInput
 } from '@shared/ipc-contract'
 import { getAllSettings, setManySettings } from './settingsRepo'
 import { listProjects, createProject, updateProject, archiveProject } from './projectsRepo'
@@ -65,6 +69,8 @@ import {
   getActionItemEvents
 } from './actionItemsRepo'
 import { getMatrix, getSuperintendentWalkHistory } from './dashboardRepo'
+import { getWeekNotes, getFullReportData, getExecSummaryData, listReportSnapshots, getSnapshotPdfPath } from './reportsRepo'
+import { exportWalkPdf, exportFullReportPdf, exportExecSummaryPdf } from '../pdf/printExport'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.APP_GET_VERSION, () => app.getVersion())
@@ -161,5 +167,32 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.DASHBOARD_GET_MATRIX, (_e, payload: unknown) => getMatrix(getMatrixInput.parse(payload)))
   ipcMain.handle(IPC.DASHBOARD_GET_SUPER_WALK_HISTORY, (_e, superintendentId: string) =>
     getSuperintendentWalkHistory(superintendentId)
+  )
+
+  ipcMain.handle(IPC.REPORTS_GET_WEEK_NOTES, (_e, weekStart: string) => getWeekNotes(weekStart))
+  ipcMain.handle(IPC.REPORTS_GET_FULL_DATA, (_e, payload: unknown) =>
+    getFullReportData(getWeekReportInput.parse(payload).weekStart)
+  )
+  ipcMain.handle(IPC.REPORTS_GET_EXEC_DATA, (_e, payload: unknown) => {
+    const input = getExecSummaryDataInput.parse(payload)
+    return getExecSummaryData(input.weekStart, input.selectedNoteIds)
+  })
+  ipcMain.handle(IPC.REPORTS_EXPORT_FULL_PDF, (_e, payload: unknown) =>
+    exportFullReportPdf(getWeekReportInput.parse(payload).weekStart)
+  )
+  ipcMain.handle(IPC.REPORTS_EXPORT_EXEC_PDF, (_e, payload: unknown) => {
+    const input = exportExecSummaryPdfInput.parse(payload)
+    return exportExecSummaryPdf(input.weekStart, input.selectedNoteIds)
+  })
+  ipcMain.handle(IPC.REPORTS_LIST_SNAPSHOTS, () => listReportSnapshots())
+  ipcMain.handle(IPC.REPORTS_OPEN_SNAPSHOT_PDF, async (_e, id: string) => {
+    const path = getSnapshotPdfPath(id)
+    if (!path) return { success: false, error: 'No PDF path saved for this report.' }
+    const error = await shell.openPath(path)
+    return error ? { success: false, error } : { success: true, error: null }
+  })
+
+  ipcMain.handle(IPC.WALKS_EXPORT_PDF, (_e, payload: unknown) =>
+    exportWalkPdf(exportWalkPdfInput.parse(payload).walkId)
   )
 }
