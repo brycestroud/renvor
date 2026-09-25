@@ -1,5 +1,54 @@
 # Changelog
 
+## Phase 6 — Reports & PDF (2026-09-25)
+
+### Added
+- Full and Executive Summary weekly reports (week-starting picker
+  defaulting to this Monday, Live badge for the current week, paper-
+  style preview): red flags (Safety <=2, Schedule <=2, any category <3),
+  escalated items marked Include-in-report, per-walk sections with full
+  scores and notes for Full, and a 3-5-note checkbox picker (not
+  enforced) pulled from that week's walk notes for Executive.
+- PDF export via real "dedicated print routes" (`/print/walk/:id`,
+  `/print/report/:type/:weekStart`) - no sidebar, white/black print
+  styling - that a hidden BrowserWindow loads and signals ready over a
+  new `PRINT_MARK_READY` IPC message before `webContents.printToPDF`
+  runs. Native save dialog remembers the last folder used (its own
+  setting, separate from the DB backup folder).
+- Every export saves a `report_snapshots` row (per the Phase 1 "save
+  each week's report" answer), surfaced as a Past Reports list with an
+  Open PDF action.
+- Wired up the walk-level Export PDF that Phase 3 (Job Walk submit
+  summary) and Phase 5 (Superintendent Detail history) both left
+  disabled as "Coming in Phase 6" stubs.
+- New `EmailWalkDialog` for Job Walk's "Email to…" - opens a pre-filled
+  mailto draft; can't attach the PDF automatically since mailto has no
+  attachment mechanism, so it tells the GS to attach it themselves.
+
+### Decisions made without asking again
+- mailto can't carry attachments - a hard platform limitation, not a
+  shortcut. Both "Email to…" (walk) and the earlier escalation email
+  from Phase 3/4 share this constraint; flagging it here since Reports
+  has no equivalent email button at all for the same reason - "Export
+  PDF" then attach-and-send-yourself is the only honest option without
+  building real SMTP (which the Phase 1 answer explicitly deferred).
+- Red flag thresholds apply per walk, not aggregated across the week -
+  matches spec 5.5's literal wording ("Safety <=2, Schedule <=2, any
+  category <3") rather than inventing a company-wide aggregate.
+
+### Verified
+- Live against real user data already in the app (not test data):
+  exported all three PDF types (Full, Executive, single Walk), read
+  each back with the PDF-reading tool to confirm correct company name,
+  scores, color-coding, and section structure.
+- Confirmed the save-folder is remembered across exports, the Past
+  Reports list and Open PDF both work, and the Email dialog renders
+  correctly (including the empty-recipients state) without erroring.
+- Found a leftover bug from Phase 5 while wiring this up: Superintendent
+  Detail's walk-history PDF button used a Mail icon instead of FileText
+  - fixed as part of this phase's edit to that button.
+- `npm run typecheck`, `npm test` (12/12), `npm run build` all pass.
+
 ## Phase 5 — Dashboard & Superintendent Detail (2026-09-25)
 
 ### Added
