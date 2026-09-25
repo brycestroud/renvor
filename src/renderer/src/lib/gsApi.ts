@@ -33,7 +33,10 @@ import type {
   CreateActionItemInput,
   UpdateActionItemInput,
   TransitionActionItemInput,
-  GetActionItemEventsInput
+  GetActionItemEventsInput,
+  DashboardMatrix,
+  GetMatrixInput,
+  WalkHistoryEntry
 } from '@shared/ipc-contract'
 
 export interface GsApi {
@@ -82,6 +85,9 @@ export interface GsApi {
   transitionActionItem: (input: TransitionActionItemInput) => Promise<ActionItemDto>
   deleteActionItem: (id: string) => Promise<void>
   getActionItemEvents: (input: GetActionItemEventsInput) => Promise<ActionItemEventDto[]>
+
+  getDashboardMatrix: (input: GetMatrixInput) => Promise<DashboardMatrix>
+  getSuperintendentWalkHistory: (superintendentId: string) => Promise<WalkHistoryEntry[]>
 }
 
 declare global {

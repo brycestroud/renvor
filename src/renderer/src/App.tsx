@@ -9,6 +9,7 @@ import { JobWalk } from './pages/JobWalk'
 import { ActionItems } from './pages/ActionItems'
 import { Reports } from './pages/Reports'
 import { Superintendents } from './pages/Superintendents'
+import { SuperintendentDetail } from './pages/SuperintendentDetail'
 import { Projects } from './pages/Projects'
 import { Procore } from './pages/Procore'
 import { Settings } from './pages/Settings'
@@ -51,6 +52,7 @@ export function App(): JSX.Element | null {
           <Route path="/action-items" element={<ActionItems />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/superintendents" element={<Superintendents />} />
+          <Route path="/superintendents/:id" element={<SuperintendentDetail />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/procore" element={<Procore />} />
           <Route path="/settings" element={<Settings />} />

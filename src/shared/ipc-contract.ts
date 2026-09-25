@@ -51,7 +51,10 @@ export const IPC = {
   ACTION_ITEMS_UPDATE: 'actionItems:update',
   ACTION_ITEMS_TRANSITION: 'actionItems:transition',
   ACTION_ITEMS_DELETE: 'actionItems:delete',
-  ACTION_ITEMS_GET_EVENTS: 'actionItems:getEvents'
+  ACTION_ITEMS_GET_EVENTS: 'actionItems:getEvents',
+
+  DASHBOARD_GET_MATRIX: 'dashboard:getMatrix',
+  DASHBOARD_GET_SUPER_WALK_HISTORY: 'dashboard:getSuperWalkHistory'
 } as const
 
 export const settingsSchema = z.object({
@@ -436,3 +439,39 @@ export interface ActionItemEventDto {
 
 export const getActionItemEventsInput = z.object({ actionItemId: z.string() })
 export type GetActionItemEventsInput = z.infer<typeof getActionItemEventsInput>
+
+// ---------------------------------------------------------------------------
+// Dashboard (matrix + superintendent trend/history)
+// ---------------------------------------------------------------------------
+export interface MatrixCategoryScore {
+  categoryId: string
+  average: number | null
+}
+
+export interface MatrixRow {
+  superintendentId: string
+  name: string
+  homeProjectId: string | null
+  homeProjectName: string | null
+  walksInRange: number
+  lastWalkDate: string | null
+  categoryScores: MatrixCategoryScore[]
+}
+
+export interface DashboardMatrix {
+  rows: MatrixRow[]
+  walksThisWeekCount: number
+}
+
+export const getMatrixInput = z.object({ from: z.string(), to: z.string() })
+export type GetMatrixInput = z.infer<typeof getMatrixInput>
+
+export interface WalkHistoryEntry {
+  walkId: string
+  date: string
+  projectId: string
+  projectName: string
+  visitType: VisitType
+  status: WalkStatus
+  categoryScores: MatrixCategoryScore[]
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { ClipboardCheck } from 'lucide-react'
 import { PageHeader } from '../components/PageHeader'
 import { EmptyState } from '../components/EmptyState'
@@ -200,11 +201,23 @@ function NewWalkPicker({ onStarted }: { onStarted: (walkId: string) => void }): 
 }
 
 export function JobWalk(): JSX.Element {
-  const [activeWalkId, setActiveWalkId] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const walkFromUrl = searchParams.get('walk')
+  const [activeWalkId, setActiveWalkId] = useState<string | null>(walkFromUrl)
 
-  if (activeWalkId) {
-    return <WalkEditor walkId={activeWalkId} onExit={() => setActiveWalkId(null)} />
+  function open(id: string): void {
+    setActiveWalkId(id)
+    setSearchParams({ walk: id })
   }
 
-  return <NewWalkPicker onStarted={setActiveWalkId} />
+  function exit(): void {
+    setActiveWalkId(null)
+    setSearchParams({})
+  }
+
+  if (activeWalkId) {
+    return <WalkEditor walkId={activeWalkId} onExit={exit} />
+  }
+
+  return <NewWalkPicker onStarted={open} />
 }

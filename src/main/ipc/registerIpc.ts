@@ -24,7 +24,8 @@ import {
   createActionItemInput,
   updateActionItemInput,
   transitionActionItemInput,
-  getActionItemEventsInput
+  getActionItemEventsInput,
+  getMatrixInput
 } from '@shared/ipc-contract'
 import { getAllSettings, setManySettings } from './settingsRepo'
 import { listProjects, createProject, updateProject, archiveProject } from './projectsRepo'
@@ -63,6 +64,7 @@ import {
   deleteActionItem,
   getActionItemEvents
 } from './actionItemsRepo'
+import { getMatrix, getSuperintendentWalkHistory } from './dashboardRepo'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.APP_GET_VERSION, () => app.getVersion())
@@ -154,5 +156,10 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.ACTION_ITEMS_DELETE, (_e, id: string) => deleteActionItem(id))
   ipcMain.handle(IPC.ACTION_ITEMS_GET_EVENTS, (_e, payload: unknown) =>
     getActionItemEvents(getActionItemEventsInput.parse(payload))
+  )
+
+  ipcMain.handle(IPC.DASHBOARD_GET_MATRIX, (_e, payload: unknown) => getMatrix(getMatrixInput.parse(payload)))
+  ipcMain.handle(IPC.DASHBOARD_GET_SUPER_WALK_HISTORY, (_e, superintendentId: string) =>
+    getSuperintendentWalkHistory(superintendentId)
   )
 }

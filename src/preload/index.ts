@@ -24,7 +24,8 @@ import {
   type CreateActionItemInput,
   type UpdateActionItemInput,
   type TransitionActionItemInput,
-  type GetActionItemEventsInput
+  type GetActionItemEventsInput,
+  type GetMatrixInput
 } from '@shared/ipc-contract'
 
 const api = {
@@ -88,7 +89,11 @@ const api = {
     ipcRenderer.invoke(IPC.ACTION_ITEMS_TRANSITION, input),
   deleteActionItem: (id: string) => ipcRenderer.invoke(IPC.ACTION_ITEMS_DELETE, id),
   getActionItemEvents: (input: GetActionItemEventsInput) =>
-    ipcRenderer.invoke(IPC.ACTION_ITEMS_GET_EVENTS, input)
+    ipcRenderer.invoke(IPC.ACTION_ITEMS_GET_EVENTS, input),
+
+  getDashboardMatrix: (input: GetMatrixInput) => ipcRenderer.invoke(IPC.DASHBOARD_GET_MATRIX, input),
+  getSuperintendentWalkHistory: (superintendentId: string) =>
+    ipcRenderer.invoke(IPC.DASHBOARD_GET_SUPER_WALK_HISTORY, superintendentId)
 }
 
 export type GsApi = typeof api
