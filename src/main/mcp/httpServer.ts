@@ -17,19 +17,26 @@
  * (Host header allow-list) to block a malicious webpage open in any browser
  * on this machine from being able to fetch() this endpoint via a spoofed
  * Host header.
+ *
+ * HTTPS, not HTTP: Claude Desktop's custom connector requires an https://
+ * URL. There's no real CA that issues certs for 127.0.0.1, so this uses a
+ * self-signed one (cert.ts) covering localhost/127.0.0.1 - Claude Desktop
+ * (or any client) may still warn about or refuse an untrusted certificate;
+ * that's a client-side trust decision this server can't make for it.
  */
-import { createServer, type Server } from 'http'
+import { createServer, type Server } from 'https'
 import { randomUUID } from 'crypto'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { registerMcpTools } from '../../mcp/tools'
+import { getOrCreateMcpCert } from './cert'
 import { logInfo, logError } from '../logger'
 
 const HOST = '127.0.0.1'
 const PORT = 39212
 
 export function getMcpHttpUrl(): string {
-  return `http://${HOST}:${PORT}/mcp`
+  return `https://${HOST}:${PORT}/mcp`
 }
 
 let httpServer: Server | null = null
@@ -50,8 +57,10 @@ export async function startMcpHttpServer(): Promise<{ ok: true } | { ok: false; 
   })
   await mcpServer.connect(transport)
 
+  const { key, cert } = await getOrCreateMcpCert()
+
   return new Promise((resolve) => {
-    const server = createServer((req, res) => {
+    const server = createServer({ key, cert }, (req, res) => {
       if (!req.url || !req.url.startsWith('/mcp')) {
         res.writeHead(404).end()
         return
