@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { PeoplePanel } from './settings/PeoplePanel'
 import { ChecklistPanel } from './settings/ChecklistPanel'
+import { BackupPanel } from './settings/BackupPanel'
 import { gsApi } from '../lib/gsApi'
 import type { AppSettings } from '@shared/ipc-contract'
 
@@ -14,7 +15,7 @@ const groups: Array<{ key: Group; label: string; ready: boolean }> = [
   { key: 'checklist', label: 'Checklist', ready: true },
   { key: 'ai', label: 'AI', ready: false },
   { key: 'notifications', label: 'Notifications', ready: false },
-  { key: 'backup', label: 'Backup & Data', ready: false },
+  { key: 'backup', label: 'Backup & Data', ready: true },
   { key: 'appearance', label: 'Appearance', ready: true }
 ]
 
@@ -135,11 +136,13 @@ export function Settings(): JSX.Element {
 
           {active === 'people' && <PeoplePanel />}
           {active === 'checklist' && <ChecklistPanel />}
+          {active === 'backup' && <BackupPanel />}
 
           {active !== 'company' &&
             active !== 'appearance' &&
             active !== 'people' &&
-            active !== 'checklist' && (
+            active !== 'checklist' &&
+            active !== 'backup' && (
               <p className="text-sm text-text-muted">This settings group ships in a later phase.</p>
             )}
         </div>

@@ -45,7 +45,16 @@ import type {
   ExportWalkPdfInput,
   PdfExportResult,
   ReportSnapshotDto,
-  OpenSnapshotResult
+  OpenSnapshotResult,
+  BackupFileInfo,
+  RestoreBackupInput,
+  RestoreResult,
+  JsonImportPickResult,
+  JsonImportCommitInput,
+  JsonImportCommitResult,
+  LegacyImportPickResult,
+  LegacyImportCommitInput,
+  LegacyImportCommitResult
 } from '@shared/ipc-contract'
 
 export interface GsApi {
@@ -109,6 +118,16 @@ export interface GsApi {
   exportWalkPdf: (input: ExportWalkPdfInput) => Promise<PdfExportResult>
 
   notifyPrintReady: () => void
+
+  backupNow: () => Promise<BackupFileInfo>
+  listBackups: () => Promise<BackupFileInfo[]>
+  restoreBackup: (input: RestoreBackupInput) => Promise<RestoreResult>
+  exportDataJson: () => Promise<PdfExportResult>
+  importDataJsonPick: () => Promise<JsonImportPickResult>
+  importDataJsonCommit: (input: JsonImportCommitInput) => Promise<JsonImportCommitResult>
+
+  legacyImportPickAndPreview: () => Promise<LegacyImportPickResult>
+  legacyImportCommit: (input: LegacyImportCommitInput) => Promise<LegacyImportCommitResult>
 }
 
 declare global {

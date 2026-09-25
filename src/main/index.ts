@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, session } from 'electron'
 import { join } from 'path'
 import { runMigrations } from './db/migrate'
 import { registerIpcHandlers } from './ipc/registerIpc'
+import { performBackup, shouldRunDailyBackup } from './backup/backupManager'
 
 // Pin userData/productName so the MCP server (standalone Node process) can
 // compute the exact same %APPDATA% path without needing Electron itself.
@@ -67,6 +68,10 @@ app.whenReady().then(() => {
   registerIpcHandlers()
   createWindow()
 
+  if (shouldRunDailyBackup()) {
+    performBackup().catch((err) => console.error('Daily backup failed:', err))
+  }
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
@@ -74,4 +79,17 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+// Back up once more on every close, not just the once-a-day check above.
+let quittingAfterBackup = false
+app.on('before-quit', (event) => {
+  if (quittingAfterBackup) return
+  event.preventDefault()
+  performBackup()
+    .catch((err) => console.error('Exit backup failed:', err))
+    .finally(() => {
+      quittingAfterBackup = true
+      app.quit()
+    })
 })

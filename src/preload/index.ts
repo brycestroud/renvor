@@ -28,7 +28,10 @@ import {
   type GetMatrixInput,
   type GetExecSummaryDataInput,
   type ExportExecSummaryPdfInput,
-  type ExportWalkPdfInput
+  type ExportWalkPdfInput,
+  type RestoreBackupInput,
+  type JsonImportCommitInput,
+  type LegacyImportCommitInput
 } from '@shared/ipc-contract'
 
 const api = {
@@ -111,7 +114,19 @@ const api = {
 
   exportWalkPdf: (input: ExportWalkPdfInput) => ipcRenderer.invoke(IPC.WALKS_EXPORT_PDF, input),
 
-  notifyPrintReady: () => ipcRenderer.send(IPC.PRINT_MARK_READY)
+  notifyPrintReady: () => ipcRenderer.send(IPC.PRINT_MARK_READY),
+
+  backupNow: () => ipcRenderer.invoke(IPC.BACKUP_NOW),
+  listBackups: () => ipcRenderer.invoke(IPC.BACKUP_LIST),
+  restoreBackup: (input: RestoreBackupInput) => ipcRenderer.invoke(IPC.BACKUP_RESTORE, input),
+  exportDataJson: () => ipcRenderer.invoke(IPC.BACKUP_EXPORT_JSON),
+  importDataJsonPick: () => ipcRenderer.invoke(IPC.BACKUP_IMPORT_JSON_PICK),
+  importDataJsonCommit: (input: JsonImportCommitInput) =>
+    ipcRenderer.invoke(IPC.BACKUP_IMPORT_JSON_COMMIT, input),
+
+  legacyImportPickAndPreview: () => ipcRenderer.invoke(IPC.LEGACY_IMPORT_PICK_AND_PREVIEW),
+  legacyImportCommit: (input: LegacyImportCommitInput) =>
+    ipcRenderer.invoke(IPC.LEGACY_IMPORT_COMMIT, input)
 }
 
 export type GsApi = typeof api

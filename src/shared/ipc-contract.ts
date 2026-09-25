@@ -66,7 +66,17 @@ export const IPC = {
 
   WALKS_EXPORT_PDF: 'walks:exportPdf',
 
-  PRINT_MARK_READY: 'print:markReady'
+  PRINT_MARK_READY: 'print:markReady',
+
+  BACKUP_NOW: 'backup:now',
+  BACKUP_LIST: 'backup:list',
+  BACKUP_RESTORE: 'backup:restore',
+  BACKUP_EXPORT_JSON: 'backup:exportJson',
+  BACKUP_IMPORT_JSON_PICK: 'backup:importJsonPick',
+  BACKUP_IMPORT_JSON_COMMIT: 'backup:importJsonCommit',
+
+  LEGACY_IMPORT_PICK_AND_PREVIEW: 'legacyImport:pickAndPreview',
+  LEGACY_IMPORT_COMMIT: 'legacyImport:commit'
 } as const
 
 export const settingsSchema = z.object({
@@ -599,3 +609,68 @@ export interface OpenSnapshotResult {
 
 export const exportWalkPdfInput = z.object({ walkId: z.string() })
 export type ExportWalkPdfInput = z.infer<typeof exportWalkPdfInput>
+
+// ---------------------------------------------------------------------------
+// Backup, restore, JSON export/import, legacy prototype import
+// ---------------------------------------------------------------------------
+export interface BackupFileInfo {
+  fileName: string
+  sizeBytes: number
+  createdAt: string
+}
+
+export interface RestoreResult {
+  success: boolean
+  error: string | null
+}
+
+export const restoreBackupInput = z.object({ fileName: z.string() })
+export type RestoreBackupInput = z.infer<typeof restoreBackupInput>
+
+export interface JsonImportPickResult {
+  canceled: boolean
+  filePath: string | null
+  valid: boolean
+  error: string | null
+  counts: Record<string, number> | null
+}
+
+export interface JsonImportCommitResult {
+  success: boolean
+  error: string | null
+}
+
+export const jsonImportCommitInput = z.object({ filePath: z.string() })
+export type JsonImportCommitInput = z.infer<typeof jsonImportCommitInput>
+
+export interface LegacyImportPreview {
+  supers: number
+  projects: number
+  walks: number
+  actionItems: number
+  matchedChecklistItems: number
+  unmatchedChecklistItems: number
+  warnings: string[]
+}
+
+export interface LegacyImportPickResult {
+  canceled: boolean
+  filePath: string | null
+  valid: boolean
+  error: string | null
+  preview: LegacyImportPreview | null
+}
+
+export interface LegacyImportCommitResult {
+  success: boolean
+  error: string | null
+  imported: {
+    supers: number
+    projects: number
+    walks: number
+    actionItems: number
+  } | null
+}
+
+export const legacyImportCommitInput = z.object({ filePath: z.string() })
+export type LegacyImportCommitInput = z.infer<typeof legacyImportCommitInput>

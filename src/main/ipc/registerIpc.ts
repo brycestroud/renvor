@@ -29,7 +29,10 @@ import {
   getWeekReportInput,
   getExecSummaryDataInput,
   exportExecSummaryPdfInput,
-  exportWalkPdfInput
+  exportWalkPdfInput,
+  restoreBackupInput,
+  jsonImportCommitInput,
+  legacyImportCommitInput
 } from '@shared/ipc-contract'
 import { getAllSettings, setManySettings } from './settingsRepo'
 import { listProjects, createProject, updateProject, archiveProject } from './projectsRepo'
@@ -71,6 +74,9 @@ import {
 import { getMatrix, getSuperintendentWalkHistory } from './dashboardRepo'
 import { getWeekNotes, getFullReportData, getExecSummaryData, listReportSnapshots, getSnapshotPdfPath } from './reportsRepo'
 import { exportWalkPdf, exportFullReportPdf, exportExecSummaryPdf } from '../pdf/printExport'
+import { performBackup, listBackups, restoreFromBackup } from '../backup/backupManager'
+import { exportJson, importJsonPick, importJsonCommit } from '../backup/jsonBackup'
+import { legacyImportPickAndPreview, legacyImportCommit } from '../backup/legacyImport'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.APP_GET_VERSION, () => app.getVersion())
@@ -194,5 +200,21 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.WALKS_EXPORT_PDF, (_e, payload: unknown) =>
     exportWalkPdf(exportWalkPdfInput.parse(payload).walkId)
+  )
+
+  ipcMain.handle(IPC.BACKUP_NOW, () => performBackup())
+  ipcMain.handle(IPC.BACKUP_LIST, () => listBackups())
+  ipcMain.handle(IPC.BACKUP_RESTORE, (_e, payload: unknown) =>
+    restoreFromBackup(restoreBackupInput.parse(payload).fileName)
+  )
+  ipcMain.handle(IPC.BACKUP_EXPORT_JSON, () => exportJson())
+  ipcMain.handle(IPC.BACKUP_IMPORT_JSON_PICK, () => importJsonPick())
+  ipcMain.handle(IPC.BACKUP_IMPORT_JSON_COMMIT, (_e, payload: unknown) =>
+    importJsonCommit(jsonImportCommitInput.parse(payload).filePath)
+  )
+
+  ipcMain.handle(IPC.LEGACY_IMPORT_PICK_AND_PREVIEW, () => legacyImportPickAndPreview())
+  ipcMain.handle(IPC.LEGACY_IMPORT_COMMIT, (_e, payload: unknown) =>
+    legacyImportCommit(legacyImportCommitInput.parse(payload).filePath)
   )
 }
