@@ -1,5 +1,78 @@
 # Changelog
 
+## MCP cert trust: real detection + guided fix (2026-09-25)
+
+Follow-up to the HTTPS switch above, same day: you tried pasting the new
+`https://` URL into Claude Desktop and it said "Couldn't reach this
+address." Confirmed with `curl` that this is a real, hard failure, not a
+config issue - Claude Desktop does strict certificate validation with no
+bypass, and a self-signed cert fails that outright
+(`SEC_E_UNTRUSTED_ROOT`). This needed a real fix: trusting the certificate
+in Windows' certificate store, once, per machine.
+
+### Added
+- Settings > MCP (and the inline copy on Getting Started) now shows a real
+  live status: "Certificate trusted" or, if not, an "Open certificate"
+  button plus the exact Windows Certificate Import Wizard steps (Current
+  User store specifically - no admin rights needed).
+- `getMcpCertFilePath()` (cert.ts) writes a `.cer` copy of the same cert
+  alongside the existing `.pem` files, since Windows reliably opens `.cer`
+  with its native Certificate viewer on double-click/open in a way `.pem`
+  isn't.
+- `IPC.MCP_OPEN_CERT_FILE` opens that file via `shell.openPath()`, handing
+  off to Windows' own native trust UI - the app never runs a command that
+  touches the certificate store itself. That's a deliberate boundary:
+  modifying the trusted-root store is something only you can choose to do
+  on your own machine, through Windows' own security prompts, not
+  something this app (or I) should do on your behalf even with a button
+  click standing in for consent.
+
+### Real bug found and fixed while building the detection
+- First version of the "is the cert trusted yet" check used Node's own
+  `https` module. Verified directly (a standalone Node script against the
+  actual untrusted cert) that this was wrong: Node's `https`/`http`
+  modules validate against Node's own bundled Mozilla CA list, never the
+  OS certificate store - so that check would have reported "untrusted"
+  forever, even the moment after you successfully trust the cert in
+  Windows. The error Node throws even says so directly: "if the root CA
+  is installed locally, try running Node.js with --use-system-ca" (a flag
+  that may not even exist in Electron's bundled Node 20.18.3 here).
+  Switched to Electron's `net` module instead, which is backed by
+  Chromium's own network stack and does use the platform certificate
+  verifier - confirmed by testing both against the same untrusted cert
+  side by side: Node's `https` throws `DEPTH_ZERO_SELF_SIGNED_CERT`,
+  Electron's `net` throws `ERR_CERT_AUTHORITY_INVALID` - the same
+  Chromium-native error curl's Windows Schannel backend effectively
+  reports too. Caught before shipping, not after - this was verified by
+  direct experiment, not assumed to be fine because it compiled.
+
+### Verified
+- Per the standing instruction - no computer-use. `npx tsc --noEmit`
+  clean on both configs, `npm run build` succeeds, `npx vitest run` still
+  38/38, `npx playwright test` (the real committed suite) still passes.
+- Two isolated standalone experiments before touching the app code: (1)
+  confirmed `curl` genuinely rejects the untrusted cert with
+  `SEC_E_UNTRUSTED_ROOT`, ruling out "maybe it actually works and Claude
+  Desktop is just being extra cautious"; (2) confirmed Electron's `net`
+  module reports the equivalent Chromium-native rejection
+  (`ERR_CERT_AUTHORITY_INVALID`) for the exact same cert, proving it's the
+  right detection mechanism before wiring it into the app.
+- A throwaway, real end-to-end check (written, run, deleted in this same
+  turn): launched the app fresh (genuinely-untrusted cert, no shortcuts),
+  confirmed the "One-time step needed first" warning renders (not
+  hardcoded - a trusted state would show the green confirmation instead),
+  confirmed the referenced cert file exists on disk at the exact path the
+  UI names, and confirmed clicking "Open certificate" calls
+  `shell.openPath` with that exact file path - not just that the button
+  exists, that it does the right thing.
+- What's NOT verified, and can't be from here: that clicking through
+  Windows' Certificate Import Wizard flips the status to "trusted" -
+  that's your action on your machine, not something I ran or can run
+  myself. The detection mechanism itself is proven correct (see above);
+  the only untested step is the manual one only you can perform. Please
+  try it and confirm the status flips to trusted and Claude Desktop
+  connects.
+
 ## MCP server: HTTPS instead of HTTP (2026-09-25)
 
 You reported Claude Desktop's custom connector needs an `https://` URL,

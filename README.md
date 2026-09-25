@@ -95,18 +95,27 @@ report data — 52 tools total) for Claude to use directly, instead of the
 app calling out to any AI API itself. Never leaves this computer.
 
 **Easiest way to connect (paste a URL):** open the app, go to
-Settings > MCP, and copy the URL shown there (something like
-`https://127.0.0.1:39212/mcp` - **https**, since Claude Desktop's custom
-connector requires it even for localhost). In Claude Desktop: Settings >
-Connectors > Add custom connector > paste it in. The Electron app hosts
-this itself (an in-process HTTPS MCP server, started when the app
-launches, stopped when it quits) - no separate process to run, no config
-file to edit. Bound to `127.0.0.1` only, with the SDK's DNS-rebinding
-protection (Host-header allow-list) on, since this is full read/write
-access with no authentication otherwise. The cert is self-signed (cached
-in `%APPDATA%\Renvor\mcp-cert\`, generated once) since no real CA issues
-certs for `127.0.0.1` - your OS/browser/Claude Desktop may warn about it
-being untrusted the first time; that's expected for a local-only server.
+Settings > MCP (or Getting Started), and copy the URL shown there
+(something like `https://127.0.0.1:39212/mcp` - **https**, since Claude
+Desktop's custom connector requires it even for localhost). In Claude
+Desktop: Settings > Connectors > Add custom connector > paste it in. The
+Electron app hosts this itself (an in-process HTTPS MCP server, started
+when the app launches, stopped when it quits) - no separate process to
+run, no config file to edit. Bound to `127.0.0.1` only, with the SDK's
+DNS-rebinding protection (Host-header allow-list) on, since this is full
+read/write access with no authentication otherwise.
+
+**One-time step: trust the certificate.** No real certificate authority
+issues certs for `127.0.0.1`, so this is self-signed (cached in
+`%APPDATA%\Renvor\mcp-cert\`, generated once) - and unlike a plain warning
+you can click past, Claude Desktop's connector does strict validation and
+will just say "couldn't reach this address" until this computer trusts it.
+The MCP panel detects this for real (an actual request through Electron's
+own Chromium-backed network stack - not Node's `https` module, which uses
+its own bundled CA list and would never see this trust change at all) and
+shows an "Open certificate" button with the exact Windows Certificate
+Import Wizard steps (Current User store, not Local Machine, so no admin
+rights needed) when it's not trusted yet.
 
 **Alternative (stdio, config-file based):** the Settings > MCP panel also
 has a collapsed "prefer a traditional mcpServers config" section with a
