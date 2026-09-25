@@ -5,12 +5,23 @@ import { PeoplePanel } from './settings/PeoplePanel'
 import { ChecklistPanel } from './settings/ChecklistPanel'
 import { BackupPanel } from './settings/BackupPanel'
 import { McpPanel } from './settings/McpPanel'
+import { GettingStartedPanel } from './settings/GettingStartedPanel'
 import { gsApi } from '../lib/gsApi'
 import type { AppSettings } from '@shared/ipc-contract'
 
-type Group = 'company' | 'people' | 'checklist' | 'mcp' | 'notifications' | 'backup' | 'appearance' | 'about'
+export type Group =
+  | 'getting-started'
+  | 'company'
+  | 'people'
+  | 'checklist'
+  | 'mcp'
+  | 'notifications'
+  | 'backup'
+  | 'appearance'
+  | 'about'
 
 const groups: Array<{ key: Group; label: string; ready: boolean }> = [
+  { key: 'getting-started', label: 'Getting Started', ready: true },
   { key: 'company', label: 'Company', ready: true },
   { key: 'people', label: 'People', ready: true },
   { key: 'checklist', label: 'Checklist', ready: true },
@@ -22,7 +33,7 @@ const groups: Array<{ key: Group; label: string; ready: boolean }> = [
 ]
 
 export function Settings(): JSX.Element {
-  const [active, setActive] = useState<Group>('company')
+  const [active, setActive] = useState<Group>('getting-started')
   const queryClient = useQueryClient()
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => gsApi().getSettings() })
   const { data: appVersion } = useQuery({ queryKey: ['app-version'], queryFn: () => gsApi().getAppVersion() })
@@ -144,6 +155,7 @@ export function Settings(): JSX.Element {
             </div>
           )}
 
+          {active === 'getting-started' && <GettingStartedPanel onNavigate={setActive} />}
           {active === 'people' && <PeoplePanel />}
           {active === 'checklist' && <ChecklistPanel />}
           {active === 'mcp' && <McpPanel />}
@@ -178,7 +190,8 @@ export function Settings(): JSX.Element {
             </div>
           )}
 
-          {active !== 'company' &&
+          {active !== 'getting-started' &&
+            active !== 'company' &&
             active !== 'appearance' &&
             active !== 'people' &&
             active !== 'checklist' &&
