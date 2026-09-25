@@ -26,6 +26,7 @@
  */
 import { createServer, type Server } from 'https'
 import { randomUUID } from 'crypto'
+import { net } from 'electron'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { registerMcpTools } from '../../mcp/tools'
@@ -93,4 +94,31 @@ export async function startMcpHttpServer(): Promise<{ ok: true } | { ok: false; 
 export function stopMcpHttpServer(): void {
   httpServer?.close()
   httpServer = null
+}
+
+/**
+ * Makes a request to our OWN server using Electron's `net` module -
+ * deliberately NOT Node's `https`/`http` modules, which use Node's own
+ * bundled Mozilla CA list and never consult the OS certificate store, so
+ * they'd report "untrusted" forever even after the user successfully
+ * trusts the cert via Windows' own wizard (verified empirically: Node's
+ * https.request against this exact untrusted cert throws
+ * DEPTH_ZERO_SELF_SIGNED_CERT regardless of Windows trust state).
+ * Electron's `net` module is backed by Chromium's network stack, which
+ * DOES use the platform certificate verifier (confirmed: it reports the
+ * same untrusted-cert result, ERR_CERT_AUTHORITY_INVALID, that curl's
+ * Windows Schannel backend reports for this same cert) - matching what
+ * Claude Desktop (also Chromium-based) actually sees.
+ */
+export function isCertTrusted(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = net.request({ method: 'GET', url: getMcpHttpUrl() })
+    req.on('response', (res) => {
+      res.on('data', () => {})
+      res.on('end', () => resolve(true))
+      res.on('error', () => resolve(false))
+    })
+    req.on('error', () => resolve(false))
+    req.end()
+  })
 }

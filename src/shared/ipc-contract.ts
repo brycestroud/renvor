@@ -84,7 +84,8 @@ export const IPC = {
 
   LOGS_OPEN_FOLDER: 'logs:openFolder',
 
-  MCP_GET_CONNECTOR_INFO: 'mcp:getConnectorInfo'
+  MCP_GET_CONNECTOR_INFO: 'mcp:getConnectorInfo',
+  MCP_OPEN_CERT_FILE: 'mcp:openCertFile'
 } as const
 
 export const settingsSchema = z.object({
@@ -764,8 +765,21 @@ export interface McpConnectorInfo {
   url: string
   httpServerRunning: boolean
   httpServerError: string | null
+  /**
+   * Whether this machine's OS/certificate store already trusts the
+   * server's self-signed cert - checked with a real strict-TLS request to
+   * itself, not assumed. False means Claude Desktop (or any client) will
+   * see "couldn't reach this address" until the cert is trusted once via
+   * "Open certificate" below.
+   */
+  certTrusted: boolean
   /** Alternative for a traditional stdio mcpServers config entry, if preferred. */
   stdioCommand: string
   stdioArgs: string[]
   stdioConfigSnippet: string
+}
+
+export interface OpenCertFileResult {
+  success: boolean
+  error: string | null
 }

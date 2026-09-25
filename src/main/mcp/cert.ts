@@ -14,12 +14,24 @@ function certDir(): string {
   return join(getStandaloneAppDataDir(), 'mcp-cert')
 }
 
+/**
+ * .cer alongside .pem (identical content - an X.509 cert is the same
+ * base64 data either way) purely so Windows recognizes it and opens its
+ * native Certificate Import Wizard on double-click; .pem isn't reliably
+ * associated with that on a fresh Windows install.
+ */
+export function getMcpCertFilePath(): string {
+  return join(certDir(), 'renvor-mcp-cert.cer')
+}
+
 export async function getOrCreateMcpCert(): Promise<{ key: string; cert: string }> {
   const dir = certDir()
   const keyPath = join(dir, 'key.pem')
   const certPath = join(dir, 'cert.pem')
+  const cerPath = getMcpCertFilePath()
 
   if (existsSync(keyPath) && existsSync(certPath)) {
+    if (!existsSync(cerPath)) writeFileSync(cerPath, readFileSync(certPath, 'utf-8'), 'utf-8')
     return { key: readFileSync(keyPath, 'utf-8'), cert: readFileSync(certPath, 'utf-8') }
   }
 
@@ -34,6 +46,7 @@ export async function getOrCreateMcpCert(): Promise<{ key: string; cert: string 
   mkdirSync(dir, { recursive: true })
   writeFileSync(keyPath, pems.private, 'utf-8')
   writeFileSync(certPath, pems.cert, 'utf-8')
+  writeFileSync(cerPath, pems.cert, 'utf-8')
 
   return { key: pems.private, cert: pems.cert }
 }

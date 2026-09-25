@@ -140,7 +140,8 @@ const api = {
 
   openLogsFolder: () => ipcRenderer.invoke(IPC.LOGS_OPEN_FOLDER),
 
-  getMcpConnectorInfo: () => ipcRenderer.invoke(IPC.MCP_GET_CONNECTOR_INFO)
+  getMcpConnectorInfo: () => ipcRenderer.invoke(IPC.MCP_GET_CONNECTOR_INFO),
+  openMcpCertFile: () => ipcRenderer.invoke(IPC.MCP_OPEN_CERT_FILE)
 }
 
 export type GsApi = typeof api

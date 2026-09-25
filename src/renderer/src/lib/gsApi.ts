@@ -61,7 +61,8 @@ import type {
   ProcoreObservationDto,
   ImportProcoreObservationsInput,
   OpenLogsFolderResult,
-  McpConnectorInfo
+  McpConnectorInfo,
+  OpenCertFileResult
 } from '@shared/ipc-contract'
 
 export interface GsApi {
@@ -143,6 +144,7 @@ export interface GsApi {
   openLogsFolder: () => Promise<OpenLogsFolderResult>
 
   getMcpConnectorInfo: () => Promise<McpConnectorInfo>
+  openMcpCertFile: () => Promise<OpenCertFileResult>
 }
 
 declare global {

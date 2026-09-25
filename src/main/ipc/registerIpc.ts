@@ -83,7 +83,8 @@ import { exportJson, importJsonPick, importJsonCommit } from '../backup/jsonBack
 import { legacyImportPickAndPreview, legacyImportCommit } from '../backup/legacyImport'
 import { getProcoreWalkPanelData, listProcoreOpenObservations, importProcoreObservations } from './procoreRepo'
 import { ensureLogsDir } from '../logger'
-import { getMcpHttpUrl, getMcpHttpStatus } from '../mcp/httpServer'
+import { getMcpHttpUrl, getMcpHttpStatus, isCertTrusted } from '../mcp/httpServer'
+import { getMcpCertFilePath } from '../mcp/cert'
 
 /**
  * projectRoot must be resolved by the caller from ITS OWN __dirname, not
@@ -247,7 +248,7 @@ export function registerIpcHandlers(projectRoot: string): void {
     return error ? { success: false, error } : { success: true, error: null }
   })
 
-  ipcMain.handle(IPC.MCP_GET_CONNECTOR_INFO, () => {
+  ipcMain.handle(IPC.MCP_GET_CONNECTOR_INFO, async () => {
     // NOT app.getAppPath() - it resolves to out/main here (the directory
     // holding index.js, since there's no package.json alongside it), not
     // the project root. Only used for the stdio alternative below; a
@@ -260,13 +261,20 @@ export function registerIpcHandlers(projectRoot: string): void {
       2
     )
     const httpStatus = getMcpHttpStatus()
+    const certTrusted = httpStatus.running ? await isCertTrusted() : false
     return {
       url: getMcpHttpUrl(),
       httpServerRunning: httpStatus.running,
       httpServerError: httpStatus.error,
+      certTrusted,
       stdioCommand: 'node',
       stdioArgs,
       stdioConfigSnippet
     }
+  })
+
+  ipcMain.handle(IPC.MCP_OPEN_CERT_FILE, async () => {
+    const error = await shell.openPath(getMcpCertFilePath())
+    return error ? { success: false, error } : { success: true, error: null }
   })
 }
