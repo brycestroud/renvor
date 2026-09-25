@@ -1,5 +1,90 @@
 # Changelog
 
+## Phase 8 — MCP Connector (2026-09-25)
+
+### Added
+- Full read/write MCP server (`src/mcp/server.ts`, 38 tools) covering
+  settings (read-only), projects, superintendents, people, categories/
+  checklist items, walks (create through submit/archive, item scoring,
+  category notes, copy-from-last-walk's underlying item-history lookup),
+  action items (create through transition/delete, event history), and
+  read-only dashboard matrix / weekly report data. This replaces the
+  Phase-1-planned in-app "AI extraction" features (paste-to-extract,
+  walk-note scan calling an API) per your explicit direction this phase:
+  no API-key-based AI calls from inside the app - Claude connects to this
+  server directly and works with the real data itself.
+- `scripts/run-mcp.js` - the launcher `npm run mcp` and any MCP client
+  config should point at. Runs the Electron binary itself in
+  `ELECTRON_RUN_AS_NODE=1` mode rather than plain `node`/`tsx`, since
+  `better-sqlite3` here is compiled against Electron's Node ABI (see
+  Phase 1's `postinstall`) and fails to load under real Node.
+- `source: 'mcp'` added to the action item source enum (alongside the
+  existing `walk`/`manual`/`ai_text`/`ai_walk_scan`/`procore`), so items
+  Claude creates via the connector are labeled honestly instead of
+  looking hand-entered. No migration needed - Drizzle's `text(..., {enum})`
+  is a TypeScript-only narrowing for SQLite text columns, not a DB-level
+  constraint (confirmed via `drizzle-kit generate`: no schema diff).
+
+### Decisions made without asking again
+- Settings are exposed read-only over MCP. "Full read/write" was scoped
+  to operational data (projects, supers, walks, action items, etc.) -
+  company name/brand colors changing mid-chat isn't a scenario that
+  answer was meant to cover, so that stays a Settings-UI-only edit.
+  Flagging this as a judgment call, not silently assumed.
+- No PDF export, backup/restore, or legacy-import tools over MCP -
+  those are inherently tied to Electron's native save/open dialogs and
+  BrowserWindow-based PDF rendering, not meaningful for a headless
+  connector process.
+
+### Real bug found and fixed while building this
+- Adding a second Rollup entry point (`mcp.js` alongside `index.js`) made
+  Vite/Rollup factor shared code - including `db/migrate.ts` - into a
+  `out/main/chunks/` subdirectory. `migrate.ts` located the `drizzle/`
+  migrations folder via its own `__dirname`, which had silently been
+  correct only because it used to live directly in `out/main/` - once it
+  moved into `chunks/`, that path resolved one directory too shallow for
+  BOTH entries, not just the new one. Caught immediately by the MCP smoke
+  test below (it failed outright rather than silently), and would have
+  broken the Electron app's own migrations on the very next `npm run
+  build` even without this phase's new code ever running. Fixed by
+  having each entry point (`main/index.ts`, `mcp/server.ts`) resolve the
+  migrations folder from its own `__dirname` and pass it into
+  `runMigrations(migrationsFolder)` as a parameter, instead of `migrate.ts`
+  computing it internally.
+- `db/client.ts` and `db/migrate.ts` no longer import Electron's `app`
+  module at all - both now resolve the db file path through
+  `@shared/paths`' `getStandaloneAppDataDir()` (already scaffolded in
+  Phase 1 for exactly this), which is plain-Node path math
+  (`process.env.APPDATA`) instead of `app.getPath('userData')`. This is
+  what makes every existing repo function (`projectsRepo.ts`,
+  `walksRepo.ts`, etc.) directly reusable, unmodified, by both the
+  Electron app and the standalone MCP process - one set of business
+  logic, two callers.
+
+### Verified
+- Per the standing instruction - no computer-use click-through this
+  phase either. Verified via:
+- `npx tsc --noEmit` clean on `tsconfig.node.json` (covers `src/mcp` too)
+  and `tsconfig.web.json`.
+- `npx vitest run` - 12/12 passing, unchanged.
+- `npm run build` succeeds; new `out/main/mcp.js` (~11KB) builds
+  alongside `out/main/index.js`.
+- A real end-to-end MCP client smoke test (the SDK's own `Client` +
+  `StdioClientTransport`, driven through `scripts/run-mcp.js` exactly as
+  a real connector would): connected, listed all 38 tools, called
+  `get_settings` and `list_projects` against the actual live database
+  (not test data) and got real data back - "Watts Construction",
+  "Bryce Stroud", "Tech Ridge #3" - proving it reads the same live file
+  the Electron app does. Write tools were not exercised against the live
+  DB (didn't want to mutate real data without you around to check it);
+  they're the same repo functions the already-verified IPC layer already
+  uses, just called directly.
+- Bryce, please try connecting this to Claude yourself before relying on
+  it: `npm run build` once, then point your MCP client at `node
+  scripts/run-mcp.js` per the README's MCP section, and try a couple of
+  write tools (e.g. create a test action item) so you've seen a real
+  write path work, not just my read-only smoke test above.
+
 ## Phase 7 — Backup, Export & Legacy Import (2026-09-25)
 
 ### Added

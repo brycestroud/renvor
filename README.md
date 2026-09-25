@@ -7,8 +7,9 @@ accounts. The only network calls the app ever makes are the optional AI
 extraction feature and the future Procore integration; everything else,
 including the MCP server, is local.
 
-Status: **Phase 1 (Foundation) complete.** See `CHANGELOG.md` for what's
-built so far and the build spec for the full phase plan.
+Status: **Phases 1-8 complete** (Foundation through the MCP connector). See
+`CHANGELOG.md` for what's built so far and the build spec for the full phase
+plan.
 
 ## Install (development)
 
@@ -57,17 +58,41 @@ npm run typecheck
 ## Data & backups
 
 The SQLite database lives in `%APPDATA%\gs-field-ops\gs-dashboard.db`.
-Automatic backups, manual backup/restore, and JSON export/import land in
-Phase 7. Until then, the file above is the only copy — back it up yourself
-if you're testing with data you care about.
+Automatic daily + on-quit backups, manual backup/restore, and JSON
+export/import are all in Settings > Backup & Data (Phase 7).
 
-## MCP server (Claude Desktop integration)
+## MCP server (Claude connector)
 
-Not built yet — scaffolded for in a later phase per your full-read/write
-answer. It will run as a standalone local Node process (`npm run mcp`)
-reading/writing the same SQLite file via WAL mode, so both it and the
-Electron app can run at once. No network involved; Claude Desktop spawns it
-locally like any other MCP server in its config.
+Full read/write access to the app's data (projects, superintendents,
+people, checklist/categories, walks + scores, action items, dashboard and
+report data — 38 tools total) for Claude to use directly, instead of the
+app calling out to any AI API itself. No network involved: it's a local
+stdio process reading/writing the exact same SQLite file (WAL mode) the
+Electron app uses, so both can run at once.
+
+Run it directly with:
+
+```bash
+npm run build   # only needed after pulling code changes, not every launch
+npm run mcp
+```
+
+To add it as a connector, point your MCP client at:
+
+- **Command:** `node`
+- **Args:** `["<full path to this repo>\\scripts\\run-mcp.js"]`
+
+**Why not just `node out/main/mcp.js` or `tsx src/mcp/server.ts` directly:**
+`better-sqlite3` here is compiled against Electron's Node ABI (see
+`postinstall` above), not plain Node's — loading it from real Node throws a
+`NODE_MODULE_VERSION` mismatch. `scripts/run-mcp.js` launches the Electron
+binary itself in `ELECTRON_RUN_AS_NODE=1` mode instead, which can load that
+same binary while behaving like a plain Node process otherwise.
+
+Settings (company name, brand colors, etc.) are exposed read-only over MCP
+— changing those stays a Settings-UI action, not something done mid-chat.
+Action items created via MCP use `source: "mcp"` so their origin is honest
+in the UI rather than looking hand-entered.
 
 ## Project layout
 
@@ -77,7 +102,9 @@ src/preload     Typed contextBridge — the only thing the renderer can call
 src/renderer    React UI
 src/shared      Code shared by main/preload/renderer/mcp: scoring, IPC
                 contract (zod), seed data, path resolution
-src/mcp         (later phase) standalone MCP server
+src/mcp         Standalone MCP server (built to out/main/mcp.js alongside
+                the Electron main process; see MCP section above)
+scripts/        run-mcp.js — the ELECTRON_RUN_AS_NODE launcher for src/mcp
 drizzle/        Generated SQL migrations — do not hand-edit
 ```
 
