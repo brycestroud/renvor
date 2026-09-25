@@ -4,16 +4,17 @@ import { PageHeader } from '../components/PageHeader'
 import { PeoplePanel } from './settings/PeoplePanel'
 import { ChecklistPanel } from './settings/ChecklistPanel'
 import { BackupPanel } from './settings/BackupPanel'
+import { McpPanel } from './settings/McpPanel'
 import { gsApi } from '../lib/gsApi'
 import type { AppSettings } from '@shared/ipc-contract'
 
-type Group = 'company' | 'people' | 'checklist' | 'ai' | 'notifications' | 'backup' | 'appearance' | 'about'
+type Group = 'company' | 'people' | 'checklist' | 'mcp' | 'notifications' | 'backup' | 'appearance' | 'about'
 
 const groups: Array<{ key: Group; label: string; ready: boolean }> = [
   { key: 'company', label: 'Company', ready: true },
   { key: 'people', label: 'People', ready: true },
   { key: 'checklist', label: 'Checklist', ready: true },
-  { key: 'ai', label: 'AI', ready: false },
+  { key: 'mcp', label: 'MCP', ready: true },
   { key: 'notifications', label: 'Notifications', ready: false },
   { key: 'backup', label: 'Backup & Data', ready: true },
   { key: 'appearance', label: 'Appearance', ready: true },
@@ -74,7 +75,8 @@ export function Settings(): JSX.Element {
               <div>
                 <h2 className="text-sm font-semibold text-text-primary">Company</h2>
                 <p className="mt-1 text-xs text-text-muted">
-                  Used across the app, PDF reports and AI prompts. No company name is hardcoded.
+                  Used across the app, PDF reports, and anything Claude sees over MCP. No company
+                  name is hardcoded.
                 </p>
               </div>
               <label className="flex flex-col gap-1.5 text-sm">
@@ -144,6 +146,7 @@ export function Settings(): JSX.Element {
 
           {active === 'people' && <PeoplePanel />}
           {active === 'checklist' && <ChecklistPanel />}
+          {active === 'mcp' && <McpPanel />}
           {active === 'backup' && <BackupPanel />}
 
           {active === 'about' && (
@@ -179,6 +182,7 @@ export function Settings(): JSX.Element {
             active !== 'appearance' &&
             active !== 'people' &&
             active !== 'checklist' &&
+            active !== 'mcp' &&
             active !== 'backup' &&
             active !== 'about' && (
               <p className="text-sm text-text-muted">This settings group ships in a later phase.</p>

@@ -60,7 +60,8 @@ import type {
   ListProcoreOpenObservationsInput,
   ProcoreObservationDto,
   ImportProcoreObservationsInput,
-  OpenLogsFolderResult
+  OpenLogsFolderResult,
+  McpConnectorInfo
 } from '@shared/ipc-contract'
 
 export interface GsApi {
@@ -140,6 +141,8 @@ export interface GsApi {
   importProcoreObservations: (input: ImportProcoreObservationsInput) => Promise<ActionItemDto[]>
 
   openLogsFolder: () => Promise<OpenLogsFolderResult>
+
+  getMcpConnectorInfo: () => Promise<McpConnectorInfo>
 }
 
 declare global {

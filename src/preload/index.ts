@@ -138,7 +138,9 @@ const api = {
   importProcoreObservations: (input: ImportProcoreObservationsInput) =>
     ipcRenderer.invoke(IPC.PROCORE_IMPORT_OBSERVATIONS, input),
 
-  openLogsFolder: () => ipcRenderer.invoke(IPC.LOGS_OPEN_FOLDER)
+  openLogsFolder: () => ipcRenderer.invoke(IPC.LOGS_OPEN_FOLDER),
+
+  getMcpConnectorInfo: () => ipcRenderer.invoke(IPC.MCP_GET_CONNECTOR_INFO)
 }
 
 export type GsApi = typeof api

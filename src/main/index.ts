@@ -78,7 +78,7 @@ app.whenReady().then(() => {
   }
 
   runMigrations(join(__dirname, '../../drizzle'))
-  registerIpcHandlers()
+  registerIpcHandlers(join(__dirname, '../..'))
   createWindow()
   logInfo(`App ready (version ${app.getVersion()}, ${isDev ? 'dev' : 'packaged'})`)
 

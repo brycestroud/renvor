@@ -1,4 +1,5 @@
 import { ipcMain, app, shell } from 'electron'
+import { join } from 'path'
 import {
   IPC,
   setManySettingsInput,
@@ -83,7 +84,14 @@ import { legacyImportPickAndPreview, legacyImportCommit } from '../backup/legacy
 import { getProcoreWalkPanelData, listProcoreOpenObservations, importProcoreObservations } from './procoreRepo'
 import { ensureLogsDir } from '../logger'
 
-export function registerIpcHandlers(): void {
+/**
+ * projectRoot must be resolved by the caller from ITS OWN __dirname, not
+ * computed in here - this module could end up in a shared Rollup chunk one
+ * directory deeper than the entry file if it's ever imported from more than
+ * one build entry (this bit main/db/migrate.ts for real in Phase 10 - see
+ * that file's comment for the full story).
+ */
+export function registerIpcHandlers(projectRoot: string): void {
   ipcMain.handle(IPC.APP_GET_VERSION, () => app.getVersion())
 
   ipcMain.handle(IPC.SETTINGS_GET_ALL, () => getAllSettings())
@@ -236,5 +244,21 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.LOGS_OPEN_FOLDER, async () => {
     const error = await shell.openPath(ensureLogsDir())
     return error ? { success: false, error } : { success: true, error: null }
+  })
+
+  ipcMain.handle(IPC.MCP_GET_CONNECTOR_INFO, () => {
+    // NOT app.getAppPath() - it resolves to out/main here (the directory
+    // holding index.js, since there's no package.json alongside it), not
+    // the project root. A packaged install doesn't currently ship scripts/
+    // at all - see docs note on the MCP settings panel - so this is
+    // accurate for "run from source" today, not yet a packaged install.
+    const scriptPath = join(projectRoot, 'scripts', 'run-mcp.js')
+    const args = [scriptPath]
+    const configSnippet = JSON.stringify(
+      { mcpServers: { renvor: { command: 'node', args } } },
+      null,
+      2
+    )
+    return { command: 'node', args, configSnippet }
   })
 }

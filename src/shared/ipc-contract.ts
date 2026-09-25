@@ -82,7 +82,9 @@ export const IPC = {
   PROCORE_LIST_OPEN_OBSERVATIONS: 'procore:listOpenObservations',
   PROCORE_IMPORT_OBSERVATIONS: 'procore:importObservations',
 
-  LOGS_OPEN_FOLDER: 'logs:openFolder'
+  LOGS_OPEN_FOLDER: 'logs:openFolder',
+
+  MCP_GET_CONNECTOR_INFO: 'mcp:getConnectorInfo'
 } as const
 
 export const settingsSchema = z.object({
@@ -752,4 +754,14 @@ export type ImportProcoreObservationsInput = z.infer<typeof importProcoreObserva
 export interface OpenLogsFolderResult {
   success: boolean
   error: string | null
+}
+
+// ---------------------------------------------------------------------------
+// MCP connector
+// ---------------------------------------------------------------------------
+export interface McpConnectorInfo {
+  command: string
+  args: string[]
+  /** Ready-to-paste mcpServers block for a Claude Desktop-style config file. */
+  configSnippet: string
 }
