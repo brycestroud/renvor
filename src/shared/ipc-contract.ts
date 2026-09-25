@@ -760,8 +760,12 @@ export interface OpenLogsFolderResult {
 // MCP connector
 // ---------------------------------------------------------------------------
 export interface McpConnectorInfo {
-  command: string
-  args: string[]
-  /** Ready-to-paste mcpServers block for a Claude Desktop-style config file. */
-  configSnippet: string
+  /** Paste directly into Claude Desktop's Settings > Connectors > Add custom connector. */
+  url: string
+  httpServerRunning: boolean
+  httpServerError: string | null
+  /** Alternative for a traditional stdio mcpServers config entry, if preferred. */
+  stdioCommand: string
+  stdioArgs: string[]
+  stdioConfigSnippet: string
 }

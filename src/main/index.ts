@@ -5,6 +5,7 @@ import { registerIpcHandlers } from './ipc/registerIpc'
 import { performBackup, shouldRunDailyBackup } from './backup/backupManager'
 import { installGlobalErrorLogging, logInfo, logError } from './logger'
 import { migrateLegacyAppDataDirIfNeeded } from '@shared/paths'
+import { startMcpHttpServer, stopMcpHttpServer } from './mcp/httpServer'
 
 // Pin userData/productName so the MCP server (standalone Node process) can
 // compute the exact same %APPDATA% path without needing Electron itself.
@@ -82,6 +83,12 @@ app.whenReady().then(() => {
   createWindow()
   logInfo(`App ready (version ${app.getVersion()}, ${isDev ? 'dev' : 'packaged'})`)
 
+  startMcpHttpServer()
+    .then((result) => {
+      if (!result.ok) console.error('MCP HTTP server failed to start:', result.error)
+    })
+    .catch((err) => logError('MCP HTTP server failed to start', err))
+
   if (shouldRunDailyBackup()) {
     performBackup()
       .then(() => logInfo('Daily backup completed'))
@@ -111,6 +118,7 @@ app.on('before-quit', (event) => {
       logError('Exit backup failed', err)
     })
     .finally(() => {
+      stopMcpHttpServer()
       quittingAfterBackup = true
       app.quit()
     })

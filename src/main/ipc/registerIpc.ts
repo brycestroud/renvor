@@ -83,6 +83,7 @@ import { exportJson, importJsonPick, importJsonCommit } from '../backup/jsonBack
 import { legacyImportPickAndPreview, legacyImportCommit } from '../backup/legacyImport'
 import { getProcoreWalkPanelData, listProcoreOpenObservations, importProcoreObservations } from './procoreRepo'
 import { ensureLogsDir } from '../logger'
+import { getMcpHttpUrl, getMcpHttpStatus } from '../mcp/httpServer'
 
 /**
  * projectRoot must be resolved by the caller from ITS OWN __dirname, not
@@ -249,16 +250,23 @@ export function registerIpcHandlers(projectRoot: string): void {
   ipcMain.handle(IPC.MCP_GET_CONNECTOR_INFO, () => {
     // NOT app.getAppPath() - it resolves to out/main here (the directory
     // holding index.js, since there's no package.json alongside it), not
-    // the project root. A packaged install doesn't currently ship scripts/
-    // at all - see docs note on the MCP settings panel - so this is
-    // accurate for "run from source" today, not yet a packaged install.
+    // the project root. Only used for the stdio alternative below; a
+    // packaged install doesn't ship scripts/ yet either way.
     const scriptPath = join(projectRoot, 'scripts', 'run-mcp.js')
-    const args = [scriptPath]
-    const configSnippet = JSON.stringify(
-      { mcpServers: { renvor: { command: 'node', args } } },
+    const stdioArgs = [scriptPath]
+    const stdioConfigSnippet = JSON.stringify(
+      { mcpServers: { renvor: { command: 'node', args: stdioArgs } } },
       null,
       2
     )
-    return { command: 'node', args, configSnippet }
+    const httpStatus = getMcpHttpStatus()
+    return {
+      url: getMcpHttpUrl(),
+      httpServerRunning: httpStatus.running,
+      httpServerError: httpStatus.error,
+      stdioCommand: 'node',
+      stdioArgs,
+      stdioConfigSnippet
+    }
   })
 }
