@@ -96,13 +96,17 @@ app calling out to any AI API itself. Never leaves this computer.
 
 **Easiest way to connect (paste a URL):** open the app, go to
 Settings > MCP, and copy the URL shown there (something like
-`http://127.0.0.1:39212/mcp`). In Claude Desktop: Settings > Connectors >
-Add custom connector > paste it in. The Electron app hosts this itself
-(an in-process HTTP MCP server, started when the app launches, stopped
-when it quits) - no separate process to run, no config file to edit.
-Bound to `127.0.0.1` only, with the SDK's DNS-rebinding protection
-(Host-header allow-list) on, since this is full read/write access with no
-authentication otherwise.
+`https://127.0.0.1:39212/mcp` - **https**, since Claude Desktop's custom
+connector requires it even for localhost). In Claude Desktop: Settings >
+Connectors > Add custom connector > paste it in. The Electron app hosts
+this itself (an in-process HTTPS MCP server, started when the app
+launches, stopped when it quits) - no separate process to run, no config
+file to edit. Bound to `127.0.0.1` only, with the SDK's DNS-rebinding
+protection (Host-header allow-list) on, since this is full read/write
+access with no authentication otherwise. The cert is self-signed (cached
+in `%APPDATA%\Renvor\mcp-cert\`, generated once) since no real CA issues
+certs for `127.0.0.1` - your OS/browser/Claude Desktop may warn about it
+being untrusted the first time; that's expected for a local-only server.
 
 **Alternative (stdio, config-file based):** the Settings > MCP panel also
 has a collapsed "prefer a traditional mcpServers config" section with a

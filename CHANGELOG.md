@@ -1,5 +1,58 @@
 # Changelog
 
+## MCP server: HTTPS instead of HTTP (2026-09-25)
+
+You reported Claude Desktop's custom connector needs an `https://` URL,
+not `http://` - even for localhost. Switched the in-process MCP server to
+HTTPS.
+
+### Added
+- `src/main/mcp/cert.ts` - generates a self-signed TLS cert (CN=localhost,
+  SANs for `localhost` + `127.0.0.1`, 10-year validity) via the new
+  `selfsigned` dependency (pure JS, no native compilation - deliberately
+  avoided anything requiring a C++ toolchain, given this project's history
+  with that). Cached to `%APPDATA%\Renvor\mcp-cert\` so it's generated
+  once, not regenerated every launch.
+- `httpServer.ts` now uses Node's `https` module instead of `http`, loaded
+  with that cert. The connector URL is now `https://127.0.0.1:39212/mcp`.
+  Same port, same DNS-rebinding protection, same tool set - only the
+  transport-level encryption changed.
+- Since no real CA issues certificates for `127.0.0.1`, this is
+  necessarily self-signed - Claude Desktop (or any client, or the OS) may
+  still show an untrusted-certificate warning the first time. Documented
+  in the README rather than hidden; there isn't a way around this for a
+  purely local server.
+
+### Real bug found and fixed while verifying this
+- The first end-to-end HTTPS check failed with a TLS-layer error ("wrong
+  version number") that looked like a broken certificate. It wasn't: an
+  earlier `npm run dev` instance (started several turns before this
+  change, for you to look at the app) was still running in the
+  background and still holding port 39212 with the **old plain-HTTP**
+  server. The new HTTPS build's own server failed to bind (port already
+  in use) while the stale HTTP server kept answering on that port - the
+  test was unknowingly talking to old code, not the new HTTPS server at
+  all. Killed the stale process, confirmed the port was genuinely free,
+  reran, and the real HTTPS server verified clean. Worth remembering for
+  next time this comes up: a long-running dev instance from an earlier
+  turn can silently shadow a rebuilt one on the same fixed port.
+
+### Verified
+- Per the standing instruction - no computer-use. `npx tsc --noEmit`
+  clean on both configs, `npm run build` succeeds, `npx vitest run` still
+  38/38, `npx playwright test` (the real committed suite) still passes.
+- Isolated the cert/TLS mechanism first, outside Electron entirely: a bare
+  Node script generating a cert with `selfsigned` and connecting to a
+  plain `https.createServer` via `tls.connect` - handshake succeeded, cert
+  CN correct. Confirmed the building blocks work before debugging the
+  app-level failure above.
+- A throwaway, real end-to-end check (written, run, deleted in this same
+  turn): launched the app, confirmed the Settings > MCP URL genuinely
+  reads `https://127.0.0.1:39212/mcp`, confirmed the cert file exists on
+  disk at the documented cache path, connected a real MCP client over
+  `StreamableHTTPClientTransport` to the HTTPS URL, listed all 52 tools,
+  and called `list_projects` successfully over the encrypted connection.
+
 ## Settings > Getting Started (2026-09-25)
 
 Follow-up to a question about distributing this to other people: each
