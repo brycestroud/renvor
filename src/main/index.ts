@@ -3,10 +3,13 @@ import { join } from 'path'
 import { runMigrations } from './db/migrate'
 import { registerIpcHandlers } from './ipc/registerIpc'
 import { performBackup, shouldRunDailyBackup } from './backup/backupManager'
+import { installGlobalErrorLogging, logInfo, logError } from './logger'
 
 // Pin userData/productName so the MCP server (standalone Node process) can
 // compute the exact same %APPDATA% path without needing Electron itself.
 app.setName('gs-field-ops')
+
+installGlobalErrorLogging()
 
 const isDev = !app.isPackaged
 
@@ -19,6 +22,9 @@ function createWindow(): void {
     show: false,
     backgroundColor: '#0B0E12',
     autoHideMenuBar: true,
+    // Packaged Windows builds get this from electron-builder.yml's win.icon
+    // instead (baked into the .exe); this only matters for unpacked/dev runs.
+    icon: join(__dirname, '../../build/icon.ico'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -29,7 +35,9 @@ function createWindow(): void {
 
   win.once('ready-to-show', () => win.show())
 
-  if (isDev) {
+  // Skipped under the Playwright e2e suite: an auto-opened DevTools window
+  // would otherwise race the app window for electronApp.firstWindow().
+  if (isDev && !process.env.PLAYWRIGHT_TEST) {
     win.webContents.openDevTools({ mode: 'detach' })
   }
 
@@ -67,9 +75,15 @@ app.whenReady().then(() => {
   runMigrations(join(__dirname, '../../drizzle'))
   registerIpcHandlers()
   createWindow()
+  logInfo(`App ready (version ${app.getVersion()}, ${isDev ? 'dev' : 'packaged'})`)
 
   if (shouldRunDailyBackup()) {
-    performBackup().catch((err) => console.error('Daily backup failed:', err))
+    performBackup()
+      .then(() => logInfo('Daily backup completed'))
+      .catch((err) => {
+        console.error('Daily backup failed:', err)
+        logError('Daily backup failed', err)
+      })
   }
 
   app.on('activate', () => {
@@ -87,7 +101,10 @@ app.on('before-quit', (event) => {
   if (quittingAfterBackup) return
   event.preventDefault()
   performBackup()
-    .catch((err) => console.error('Exit backup failed:', err))
+    .catch((err) => {
+      console.error('Exit backup failed:', err)
+      logError('Exit backup failed', err)
+    })
     .finally(() => {
       quittingAfterBackup = true
       app.quit()

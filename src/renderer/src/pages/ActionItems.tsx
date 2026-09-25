@@ -75,6 +75,7 @@ export function ActionItems(): JSX.Element {
   const [deEscalating, setDeEscalating] = useState<ActionItemListDto | null>(null)
   const [historyItem, setHistoryItem] = useState<ActionItemListDto | null>(null)
   const [importingProcore, setImportingProcore] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const today = todayIso()
 
@@ -87,21 +88,28 @@ export function ActionItems(): JSX.Element {
         notified: [],
         walkId: null
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['action-items-all'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['action-items-all'] })
+      queryClient.invalidateQueries({ queryKey: ['open-action-items'] })
+    },
+    onError: (e: Error) => setError(e.message)
   })
 
   const toggleIncludeInReport = useMutation({
     mutationFn: (vars: { id: string; includeInReport: boolean }) =>
       gsApi().updateActionItem({ id: vars.id, includeInReport: vars.includeInReport }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['action-items-all'] })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['action-items-all'] }),
+    onError: (e: Error) => setError(e.message)
   })
 
   const remove = useMutation({
     mutationFn: (id: string) => gsApi().deleteActionItem(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['action-items-all'] })
+      queryClient.invalidateQueries({ queryKey: ['open-action-items'] })
       setDeleting(null)
-    }
+    },
+    onError: (e: Error) => setError(e.message)
   })
 
   const stats = useMemo(() => {
@@ -156,6 +164,12 @@ export function ActionItems(): JSX.Element {
           </div>
         }
       />
+
+      {error && (
+        <p className="rounded-control border border-danger-muted bg-danger-muted px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div className="rounded-panel border border-border-subtle bg-surface-1 px-4 py-3">

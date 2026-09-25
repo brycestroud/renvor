@@ -81,6 +81,7 @@ import { performBackup, listBackups, restoreFromBackup } from '../backup/backupM
 import { exportJson, importJsonPick, importJsonCommit } from '../backup/jsonBackup'
 import { legacyImportPickAndPreview, legacyImportCommit } from '../backup/legacyImport'
 import { getProcoreWalkPanelData, listProcoreOpenObservations, importProcoreObservations } from './procoreRepo'
+import { ensureLogsDir } from '../logger'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.APP_GET_VERSION, () => app.getVersion())
@@ -231,4 +232,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.PROCORE_IMPORT_OBSERVATIONS, (_e, payload: unknown) =>
     importProcoreObservations(importProcoreObservationsInput.parse(payload))
   )
+
+  ipcMain.handle(IPC.LOGS_OPEN_FOLDER, async () => {
+    const error = await shell.openPath(ensureLogsDir())
+    return error ? { success: false, error } : { success: true, error: null }
+  })
 }

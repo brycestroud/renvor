@@ -5,7 +5,9 @@ import {
   weightedOverallScore,
   unweightedAverage,
   isItemDue,
-  isActionItemOverdue
+  isActionItemOverdue,
+  isRedFlagCategory,
+  computeActionItemStats
 } from './scoring'
 
 describe('categoryScore', () => {
@@ -100,5 +102,50 @@ describe('isActionItemOverdue', () => {
     expect(isActionItemOverdue('2026-09-01', 'closed', '2026-09-24')).toBe(false)
     expect(isActionItemOverdue('2026-09-30', 'open', '2026-09-24')).toBe(false)
     expect(isActionItemOverdue(null, 'open', '2026-09-24')).toBe(false)
+  })
+})
+
+describe('isRedFlagCategory', () => {
+  it('flags Safety and Schedule at <=2, case-insensitively', () => {
+    expect(isRedFlagCategory('Safety', 2)).toBe(true)
+    expect(isRedFlagCategory('safety', 2)).toBe(true)
+    expect(isRedFlagCategory('SCHEDULE', 2)).toBe(true)
+  })
+
+  it('flags any category under 3, including Safety/Schedule between >2 and <3', () => {
+    expect(isRedFlagCategory('Quality Control', 2.9)).toBe(true)
+    expect(isRedFlagCategory('Safety', 2.9)).toBe(true) // <3 rule still applies above the <=2 threshold
+    expect(isRedFlagCategory('Quality Control', 3)).toBe(false)
+  })
+
+  it('does not flag a non-Safety/Schedule category at exactly 3 or above', () => {
+    expect(isRedFlagCategory('Budget', 3)).toBe(false)
+    expect(isRedFlagCategory('Budget', 5)).toBe(false)
+  })
+})
+
+describe('computeActionItemStats', () => {
+  const weekStart = '2026-09-21'
+  const weekEnd = '2026-09-27'
+  const today = '2026-09-24'
+
+  it('counts items created and closed within the week (inclusive)', () => {
+    const items = [
+      { createdAt: '2026-09-21T08:00:00.000Z', closedAt: null, dueDate: null, status: 'open' as const },
+      { createdAt: '2026-09-27T23:00:00.000Z', closedAt: '2026-09-22T00:00:00.000Z', dueDate: null, status: 'closed' as const },
+      { createdAt: '2026-09-20T00:00:00.000Z', closedAt: null, dueDate: null, status: 'open' as const } // before the week - not opened
+    ]
+    const stats = computeActionItemStats(items, weekStart, weekEnd, today)
+    expect(stats.opened).toBe(2)
+    expect(stats.closed).toBe(1)
+  })
+
+  it('counts overdue using the same rule as isActionItemOverdue', () => {
+    const items = [
+      { createdAt: '2026-09-21', closedAt: null, dueDate: '2026-09-01', status: 'open' as const },
+      { createdAt: '2026-09-21', closedAt: null, dueDate: '2026-09-01', status: 'closed' as const },
+      { createdAt: '2026-09-21', closedAt: null, dueDate: '2026-09-30', status: 'open' as const }
+    ]
+    expect(computeActionItemStats(items, weekStart, weekEnd, today).overdue).toBe(1)
   })
 })

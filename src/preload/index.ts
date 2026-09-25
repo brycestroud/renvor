@@ -136,7 +136,9 @@ const api = {
   listProcoreOpenObservations: (input: ListProcoreOpenObservationsInput) =>
     ipcRenderer.invoke(IPC.PROCORE_LIST_OPEN_OBSERVATIONS, input),
   importProcoreObservations: (input: ImportProcoreObservationsInput) =>
-    ipcRenderer.invoke(IPC.PROCORE_IMPORT_OBSERVATIONS, input)
+    ipcRenderer.invoke(IPC.PROCORE_IMPORT_OBSERVATIONS, input),
+
+  openLogsFolder: () => ipcRenderer.invoke(IPC.LOGS_OPEN_FOLDER)
 }
 
 export type GsApi = typeof api

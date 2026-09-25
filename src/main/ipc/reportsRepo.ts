@@ -2,7 +2,7 @@ import { eq, and, isNull } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { getDb } from '../db/client'
 import * as schema from '../db/schema'
-import { categoryScore, weightedOverallScore, unweightedAverage } from '@shared/scoring'
+import { categoryScore, weightedOverallScore, unweightedAverage, isRedFlagCategory, computeActionItemStats } from '@shared/scoring'
 import { getAllSettings } from './settingsRepo'
 import type {
   WeekNote,
@@ -100,10 +100,7 @@ function buildRedFlags(ctx: WeekContext): RedFlag[] {
     const catScores = walkCategoryScores(ctx, walk)
     for (const cs of catScores) {
       if (cs.average == null) continue
-      const isSafety = cs.categoryName.toLowerCase() === 'safety'
-      const isSchedule = cs.categoryName.toLowerCase() === 'schedule'
-      const flagged = (isSafety && cs.average <= 2) || (isSchedule && cs.average <= 2) || cs.average < 3
-      if (flagged) {
+      if (isRedFlagCategory(cs.categoryName, cs.average)) {
         flags.push({
           walkId: walk.id,
           superintendentName: supById.get(walk.superintendentId) ?? 'Unknown',
@@ -169,14 +166,7 @@ function buildActionItemStats(weekStart: string, weekEnd: string) {
   const db = getDb()
   const items = db.select().from(schema.actionItems).where(isNull(schema.actionItems.deletedAt)).all()
   const today = new Date().toISOString().slice(0, 10)
-
-  const opened = items.filter((i) => i.createdAt.slice(0, 10) >= weekStart && i.createdAt.slice(0, 10) <= weekEnd).length
-  const closed = items.filter(
-    (i) => i.closedAt && i.closedAt.slice(0, 10) >= weekStart && i.closedAt.slice(0, 10) <= weekEnd
-  ).length
-  const overdue = items.filter((i) => i.dueDate && i.status !== 'closed' && i.dueDate < today).length
-
-  return { opened, closed, overdue }
+  return computeActionItemStats(items, weekStart, weekEnd, today)
 }
 
 export function getWeekNotes(weekStart: string): WeekNote[] {

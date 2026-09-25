@@ -3,6 +3,8 @@ out
 dist
 dist-electron
 release
+test-results
+playwright-report
 *.tsbuildinfo
 *.db
 *.db-journal

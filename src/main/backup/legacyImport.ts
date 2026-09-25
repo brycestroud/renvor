@@ -83,16 +83,20 @@ interface LegacyExport {
   actionItems?: LegacyAction[]
 }
 
-function legacyId(namespace: string, key: string): string {
+// Exported for unit testing (src/main/backup/legacyImport.test.ts) - these
+// three are pure (no DB access), unlike the rest of this file which needs
+// getDb() and so can't run under plain-Node vitest (better-sqlite3 here is
+// compiled against Electron's Node ABI - see package.json's postinstall).
+export function legacyId(namespace: string, key: string): string {
   const hash = createHash('sha1').update(`${namespace}:${key.toLowerCase().trim()}`).digest('hex')
   return [hash.slice(0, 8), hash.slice(8, 12), hash.slice(12, 16), hash.slice(16, 20), hash.slice(20, 32)].join('-')
 }
 
-function itemText(item: LegacyItem): string {
+export function itemText(item: LegacyItem): string {
   return (item.text ?? item.name ?? item.label ?? '').trim()
 }
 
-function parseLegacyFile(raw: string): { data: LegacyExport | null; error: string | null } {
+export function parseLegacyFile(raw: string): { data: LegacyExport | null; error: string | null } {
   let json: unknown
   try {
     json = JSON.parse(raw)

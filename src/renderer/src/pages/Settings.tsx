@@ -7,7 +7,7 @@ import { BackupPanel } from './settings/BackupPanel'
 import { gsApi } from '../lib/gsApi'
 import type { AppSettings } from '@shared/ipc-contract'
 
-type Group = 'company' | 'people' | 'checklist' | 'ai' | 'notifications' | 'backup' | 'appearance'
+type Group = 'company' | 'people' | 'checklist' | 'ai' | 'notifications' | 'backup' | 'appearance' | 'about'
 
 const groups: Array<{ key: Group; label: string; ready: boolean }> = [
   { key: 'company', label: 'Company', ready: true },
@@ -16,16 +16,24 @@ const groups: Array<{ key: Group; label: string; ready: boolean }> = [
   { key: 'ai', label: 'AI', ready: false },
   { key: 'notifications', label: 'Notifications', ready: false },
   { key: 'backup', label: 'Backup & Data', ready: true },
-  { key: 'appearance', label: 'Appearance', ready: true }
+  { key: 'appearance', label: 'Appearance', ready: true },
+  { key: 'about', label: 'About', ready: true }
 ]
 
 export function Settings(): JSX.Element {
   const [active, setActive] = useState<Group>('company')
   const queryClient = useQueryClient()
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => gsApi().getSettings() })
+  const { data: appVersion } = useQuery({ queryKey: ['app-version'], queryFn: () => gsApi().getAppVersion() })
   const [companyName, setCompanyName] = useState('')
   const [brandPrimaryColor, setBrandPrimaryColor] = useState('#FF8A24')
   const [brandAccentColor, setBrandAccentColor] = useState('#4EA1FF')
+  const [logsMessage, setLogsMessage] = useState<string | null>(null)
+
+  const openLogsFolder = useMutation({
+    mutationFn: () => gsApi().openLogsFolder(),
+    onSuccess: (result) => setLogsMessage(result.success ? null : result.error)
+  })
 
   useEffect(() => {
     if (!settings) return
@@ -138,11 +146,41 @@ export function Settings(): JSX.Element {
           {active === 'checklist' && <ChecklistPanel />}
           {active === 'backup' && <BackupPanel />}
 
+          {active === 'about' && (
+            <div className="flex max-w-md flex-col gap-4">
+              <div>
+                <h2 className="text-sm font-semibold text-text-primary">About</h2>
+                <p className="mt-1 text-xs text-text-muted">App version and diagnostic logs.</p>
+              </div>
+              <div className="flex items-center justify-between rounded-control border border-border-subtle bg-surface-2 px-3 py-2.5 text-sm">
+                <span className="text-text-secondary">Version</span>
+                <span className="font-mono text-text-primary">{appVersion ?? '—'}</span>
+              </div>
+              <div>
+                <button
+                  onClick={() => {
+                    setLogsMessage(null)
+                    openLogsFolder.mutate()
+                  }}
+                  disabled={openLogsFolder.isPending}
+                  className="rounded-control border border-border bg-surface-2 px-4 py-2 text-sm text-text-secondary transition-colors hover:bg-surface-hover disabled:opacity-60"
+                >
+                  {openLogsFolder.isPending ? 'Opening…' : 'Open logs folder'}
+                </button>
+                <p className="mt-1.5 text-xs text-text-muted">
+                  Logs are written locally, one file per day, and never leave this computer.
+                </p>
+                {logsMessage && <p className="mt-1.5 text-sm text-danger">{logsMessage}</p>}
+              </div>
+            </div>
+          )}
+
           {active !== 'company' &&
             active !== 'appearance' &&
             active !== 'people' &&
             active !== 'checklist' &&
-            active !== 'backup' && (
+            active !== 'backup' &&
+            active !== 'about' && (
               <p className="text-sm text-text-muted">This settings group ships in a later phase.</p>
             )}
         </div>

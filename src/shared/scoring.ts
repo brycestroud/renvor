@@ -101,3 +101,36 @@ export function isActionItemOverdue(
   if (!dueDate || status === 'closed') return false
   return dueDate < today
 }
+
+/**
+ * Red-flag rule for weekly reports (spec 5.5): Safety <=2, Schedule <=2, or
+ * any category <3. Category name match is case-insensitive since it comes
+ * from user-editable Settings data, not a fixed enum.
+ */
+export function isRedFlagCategory(categoryName: string, average: number): boolean {
+  const name = categoryName.toLowerCase()
+  if ((name === 'safety' || name === 'schedule') && average <= 2) return true
+  return average < 3
+}
+
+export interface ActionItemStatsInput {
+  createdAt: string
+  closedAt: string | null
+  dueDate: string | null
+  status: 'open' | 'carried' | 'closed' | 'escalated'
+}
+
+/** Opened/closed this week (by date, inclusive) and currently-overdue counts, for the weekly report's summary line. */
+export function computeActionItemStats(
+  items: ActionItemStatsInput[],
+  weekStart: string,
+  weekEnd: string,
+  today: string
+): { opened: number; closed: number; overdue: number } {
+  const inRange = (iso: string) => iso.slice(0, 10) >= weekStart && iso.slice(0, 10) <= weekEnd
+  return {
+    opened: items.filter((i) => inRange(i.createdAt)).length,
+    closed: items.filter((i) => i.closedAt != null && inRange(i.closedAt)).length,
+    overdue: items.filter((i) => isActionItemOverdue(i.dueDate, i.status, today)).length
+  }
+}

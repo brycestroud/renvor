@@ -280,8 +280,10 @@ export function Reports(): JSX.Element {
       </div>
 
       {!isLoading && !summary && (
-        <div className="flex items-center gap-2 text-sm text-text-muted">
-          <FileText size={16} /> No data for this week yet.
+        <div className="flex items-center gap-2 rounded-control border border-dashed border-border-subtle px-4 py-6 text-sm text-text-muted">
+          <FileText size={16} />
+          No submitted walks for {weekStart} – {weekEnd} yet. Pick a different week above, or
+          complete a walk from Job Walk to see it here.
         </div>
       )}
     </div>

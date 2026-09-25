@@ -80,7 +80,9 @@ export const IPC = {
 
   PROCORE_GET_WALK_PANEL_DATA: 'procore:getWalkPanelData',
   PROCORE_LIST_OPEN_OBSERVATIONS: 'procore:listOpenObservations',
-  PROCORE_IMPORT_OBSERVATIONS: 'procore:importObservations'
+  PROCORE_IMPORT_OBSERVATIONS: 'procore:importObservations',
+
+  LOGS_OPEN_FOLDER: 'logs:openFolder'
 } as const
 
 export const settingsSchema = z.object({
@@ -743,3 +745,11 @@ export const importProcoreObservationsInput = z.object({
   observationIds: z.array(z.string()).min(1)
 })
 export type ImportProcoreObservationsInput = z.infer<typeof importProcoreObservationsInput>
+
+// ---------------------------------------------------------------------------
+// Logs
+// ---------------------------------------------------------------------------
+export interface OpenLogsFolderResult {
+  success: boolean
+  error: string | null
+}

@@ -32,7 +32,10 @@ function ReviewRow({
   const queryClient = useQueryClient()
   const [escalating, setEscalating] = useState(false)
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['open-action-items'] })
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['open-action-items'] })
+    queryClient.invalidateQueries({ queryKey: ['action-items-all'] })
+  }
 
   const transition = useMutation({
     mutationFn: (event: 'closed' | 'carried') =>
@@ -114,6 +117,7 @@ function NewActionItemForm({
     onSuccess: () => {
       setText('')
       queryClient.invalidateQueries({ queryKey: ['open-action-items'] })
+      queryClient.invalidateQueries({ queryKey: ['action-items-all'] })
     }
   })
 

@@ -154,13 +154,15 @@ export function PeoplePanel(): JSX.Element {
   const { data: people, isLoading } = useQuery({ queryKey: ['people'], queryFn: () => gsApi().listPeople() })
   const [editing, setEditing] = useState<Person | null | 'new'>(null)
   const [deleting, setDeleting] = useState<Person | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const remove = useMutation({
     mutationFn: (id: string) => gsApi().deletePerson(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['people'] })
       setDeleting(null)
-    }
+    },
+    onError: (e: Error) => setError(e.message)
   })
 
   return (
@@ -180,6 +182,8 @@ export function PeoplePanel(): JSX.Element {
           <Plus size={14} /> Add person
         </button>
       </div>
+
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       {isLoading && <p className="text-sm text-text-muted">Loading…</p>}
 

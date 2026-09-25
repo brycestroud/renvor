@@ -59,7 +59,8 @@ import type {
   ProcoreWalkPanelData,
   ListProcoreOpenObservationsInput,
   ProcoreObservationDto,
-  ImportProcoreObservationsInput
+  ImportProcoreObservationsInput,
+  OpenLogsFolderResult
 } from '@shared/ipc-contract'
 
 export interface GsApi {
@@ -137,6 +138,8 @@ export interface GsApi {
   getProcoreWalkPanelData: (input: GetProcoreWalkPanelDataInput) => Promise<ProcoreWalkPanelData>
   listProcoreOpenObservations: (input: ListProcoreOpenObservationsInput) => Promise<ProcoreObservationDto[]>
   importProcoreObservations: (input: ImportProcoreObservationsInput) => Promise<ActionItemDto[]>
+
+  openLogsFolder: () => Promise<OpenLogsFolderResult>
 }
 
 declare global {

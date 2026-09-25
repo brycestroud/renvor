@@ -44,12 +44,15 @@ function NewWalkPicker({ onStarted }: { onStarted: (walkId: string) => void }): 
     setVisitType(projectId === selectedSuper.homeProjectId ? 'home' : 'cross_project')
   }, [projectId, selectedSuper, visitTypeTouched])
 
+  const [error, setError] = useState<string | null>(null)
+
   const start = useMutation({
     mutationFn: () => gsApi().createWalk({ date, superintendentId, projectId, visitType }),
     onSuccess: (walk) => {
       queryClient.invalidateQueries({ queryKey: ['recent-walks'] })
       onStarted(walk.id)
-    }
+    },
+    onError: (e: Error) => setError(e.message)
   })
 
   const canStart = Boolean(superintendentId && projectId && date)
@@ -137,12 +140,16 @@ function NewWalkPicker({ onStarted }: { onStarted: (walkId: string) => void }): 
         </div>
 
         <button
-          onClick={() => start.mutate()}
+          onClick={() => {
+            setError(null)
+            start.mutate()
+          }}
           disabled={!canStart || start.isPending}
           className="mt-4 rounded-control bg-brand px-4 py-2.5 text-sm font-medium text-[#171200] transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           {start.isPending ? 'Starting…' : 'Start Walk'}
         </button>
+        {error && <p className="mt-2 text-sm text-danger">{error}</p>}
       </div>
 
       <div>
