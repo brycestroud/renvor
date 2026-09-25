@@ -15,6 +15,7 @@ import { z } from 'zod'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
+import { getDb } from '@main/db/client'
 import { runMigrations } from '@main/db/migrate'
 import { getAllSettings } from '@main/ipc/settingsRepo'
 import { listProjects, createProject, updateProject, archiveProject } from '@main/ipc/projectsRepo'
@@ -104,6 +105,37 @@ function wrap0<Result>(fn: () => Result): () => Promise<CallToolResult> {
   }
 }
 
+/**
+ * Runs fn once per item in ONE MCP round trip instead of one call per item -
+ * this is the difference between a chat doing "score 40 checklist items"
+ * as 40 tool calls vs. 1. All items run inside a single db transaction, so
+ * a bad item rolls the whole batch back rather than leaving a half-applied
+ * walk/action-item-list - a batch either fully lands or fully doesn't.
+ */
+function wrapBatch<Item, Result>(
+  fn: (item: Item) => Result
+): (args: { items: Item[] }) => Promise<CallToolResult> {
+  return async ({ items }: { items: Item[] }) => {
+    try {
+      const results = getDb().transaction(() => items.map((item) => fn(item)))
+      return ok(results)
+    } catch (error) {
+      return fail(error)
+    }
+  }
+}
+
+function wrapBatchIds<Result>(fn: (id: string) => Result): (args: { ids: string[] }) => Promise<CallToolResult> {
+  return async ({ ids }: { ids: string[] }) => {
+    try {
+      const results = getDb().transaction(() => ids.map((id) => fn(id)))
+      return ok(results)
+    } catch (error) {
+      return fail(error)
+    }
+  }
+}
+
 const server = new McpServer({ name: 'gs-field-ops', version: '1.0.0' })
 
 // ---------------------------------------------------------------------------
@@ -143,6 +175,24 @@ server.registerTool(
   },
   wrap(({ id }: { id: string }) => archiveProject(id))
 )
+server.registerTool(
+  'batch_create_projects',
+  {
+    title: 'Create multiple projects',
+    description: 'Create many projects in one call instead of one create_project call per project.',
+    inputSchema: { items: z.array(createProjectInput) }
+  },
+  wrapBatch(createProject)
+)
+server.registerTool(
+  'batch_archive_projects',
+  {
+    title: 'Archive multiple projects',
+    description: 'Soft-delete many projects in one call. Confirm with the user first.',
+    inputSchema: { ids: z.array(z.string()) }
+  },
+  wrapBatchIds(archiveProject)
+)
 
 // ---------------------------------------------------------------------------
 // Superintendents
@@ -179,6 +229,24 @@ server.registerTool(
   },
   wrap(({ id }: { id: string }) => archiveSuperintendent(id))
 )
+server.registerTool(
+  'batch_create_superintendents',
+  {
+    title: 'Create multiple superintendents',
+    description: 'Create many superintendents in one call instead of one create_superintendent call per person.',
+    inputSchema: { items: z.array(createSuperintendentInput) }
+  },
+  wrapBatch(createSuperintendent)
+)
+server.registerTool(
+  'batch_archive_superintendents',
+  {
+    title: 'Archive multiple superintendents',
+    description: 'Soft-delete many superintendents in one call. Confirm with the user first.',
+    inputSchema: { ids: z.array(z.string()) }
+  },
+  wrapBatchIds(archiveSuperintendent)
+)
 
 // ---------------------------------------------------------------------------
 // People (report recipients / escalation contacts)
@@ -206,6 +274,24 @@ server.registerTool(
     inputSchema: { id: z.string() }
   },
   wrap(({ id }: { id: string }) => deletePerson(id))
+)
+server.registerTool(
+  'batch_create_people',
+  {
+    title: 'Create multiple people',
+    description: 'Add many report recipients / escalation contacts in one call.',
+    inputSchema: { items: z.array(createPersonInput) }
+  },
+  wrapBatch(createPerson)
+)
+server.registerTool(
+  'batch_delete_people',
+  {
+    title: 'Delete multiple people',
+    description: 'Permanently remove many people in one call. This is a hard delete - confirm with the user first.',
+    inputSchema: { ids: z.array(z.string()) }
+  },
+  wrapBatchIds(deletePerson)
 )
 
 // ---------------------------------------------------------------------------
@@ -243,6 +329,15 @@ server.registerTool(
   },
   wrap(updateChecklistItem)
 )
+server.registerTool(
+  'batch_create_checklist_items',
+  {
+    title: 'Create multiple checklist items',
+    description: 'Add many custom checklist items in one call instead of one create_checklist_item call per item.',
+    inputSchema: { items: z.array(createChecklistItemInput) }
+  },
+  wrapBatch(createChecklistItem)
+)
 
 // ---------------------------------------------------------------------------
 // Walks
@@ -275,6 +370,36 @@ server.registerTool(
   'set_item_score',
   { title: 'Set item score', description: 'Score (1-5) or mark N/A a single checklist item on a walk.', inputSchema: setItemScoreInput.shape },
   wrap(setItemScore)
+)
+server.registerTool(
+  'batch_set_item_scores',
+  {
+    title: 'Set multiple item scores',
+    description:
+      'Score (1-5) or mark N/A many checklist items on one walk in a single call - use this instead of many individual set_item_score calls when scoring a whole walk.',
+    inputSchema: {
+      walkId: z.string(),
+      scores: z.array(
+        z.object({
+          checklistItemId: z.string(),
+          score: z.number().int().min(1).max(5).nullable(),
+          isNa: z.boolean()
+        })
+      )
+    }
+  },
+  async ({ walkId, scores }: { walkId: string; scores: Array<{ checklistItemId: string; score: number | null; isNa: boolean }> }) => {
+    try {
+      getDb().transaction(() => {
+        for (const s of scores) {
+          setItemScore({ walkId, checklistItemId: s.checklistItemId, score: s.score, isNa: s.isNa })
+        }
+      })
+      return ok(getWalk(walkId))
+    } catch (error) {
+      return fail(error)
+    }
+  }
 )
 server.registerTool(
   'mark_all_remaining_na',
@@ -312,6 +437,77 @@ server.registerTool(
     inputSchema: { id: z.string() }
   },
   wrap(({ id }: { id: string }) => archiveWalk(id))
+)
+server.registerTool(
+  'batch_archive_walks',
+  {
+    title: 'Archive multiple walks',
+    description: 'Soft-delete many walks in one call. Confirm with the user first.',
+    inputSchema: { ids: z.array(z.string()) }
+  },
+  wrapBatchIds(archiveWalk)
+)
+server.registerTool(
+  'record_walk',
+  {
+    title: 'Record a full walk in one call',
+    description:
+      'Create a walk and set all of its item scores, category notes, and overall/follow-up notes in a single call, optionally submitting it immediately (default: yes). Use this instead of create_walk followed by many individual set_item_score / set_category_note calls - it does all of those writes server-side in one round trip.',
+    inputSchema: {
+      date: z.string(),
+      superintendentId: z.string(),
+      projectId: z.string(),
+      visitType: z.enum(['home', 'cross_project']),
+      overallNotes: z.string().nullable().optional(),
+      followupNotes: z.string().nullable().optional(),
+      itemScores: z
+        .array(
+          z.object({
+            checklistItemId: z.string(),
+            score: z.number().int().min(1).max(5).nullable(),
+            isNa: z.boolean()
+          })
+        )
+        .default([]),
+      categoryNotes: z.array(z.object({ categoryId: z.string(), notes: z.string() })).default([]),
+      submit: z.boolean().default(true).describe('Finalize the walk as submitted. Set false to leave it as a draft.')
+    }
+  },
+  async (args: {
+    date: string
+    superintendentId: string
+    projectId: string
+    visitType: 'home' | 'cross_project'
+    overallNotes?: string | null
+    followupNotes?: string | null
+    itemScores: Array<{ checklistItemId: string; score: number | null; isNa: boolean }>
+    categoryNotes: Array<{ categoryId: string; notes: string }>
+    submit: boolean
+  }) => {
+    try {
+      const result = getDb().transaction(() => {
+        const walk = createWalk({
+          date: args.date,
+          superintendentId: args.superintendentId,
+          projectId: args.projectId,
+          visitType: args.visitType
+        })
+        for (const s of args.itemScores) {
+          setItemScore({ walkId: walk.id, checklistItemId: s.checklistItemId, score: s.score, isNa: s.isNa })
+        }
+        for (const n of args.categoryNotes) {
+          setCategoryNote({ walkId: walk.id, categoryId: n.categoryId, notes: n.notes })
+        }
+        if (args.overallNotes !== undefined || args.followupNotes !== undefined) {
+          updateWalkHeader({ id: walk.id, overallNotes: args.overallNotes, followupNotes: args.followupNotes })
+        }
+        return args.submit ? submitWalk({ id: walk.id }) : getWalk(walk.id)
+      })
+      return ok(result)
+    } catch (error) {
+      return fail(error)
+    }
+  }
 )
 
 // ---------------------------------------------------------------------------
@@ -368,6 +564,43 @@ server.registerTool(
   'get_action_item_events',
   { title: 'Get action item events', description: 'Full status-change history for one action item.', inputSchema: getActionItemEventsInput.shape },
   wrap(getActionItemEvents)
+)
+server.registerTool(
+  'batch_create_action_items',
+  {
+    title: 'Create multiple action items',
+    description:
+      'Create many action items in one call instead of one create_action_item call per item - use this for a punch list pulled from pasted notes/email. When creating on the GS\'s behalf, pass source: "mcp" on each item so its origin is honest in the UI.',
+    inputSchema: { items: z.array(createActionItemInput) }
+  },
+  wrapBatch(createActionItem)
+)
+server.registerTool(
+  'batch_update_action_items',
+  {
+    title: 'Update multiple action items',
+    description: 'Edit many action items (text/owner/due date/priority) in one call.',
+    inputSchema: { items: z.array(updateActionItemInput) }
+  },
+  wrapBatch(updateActionItem)
+)
+server.registerTool(
+  'batch_transition_action_items',
+  {
+    title: 'Transition multiple action items',
+    description: 'Close, carry, escalate, de-escalate, or reopen many action items in one call.',
+    inputSchema: { items: z.array(transitionActionItemInput) }
+  },
+  wrapBatch(transitionActionItem)
+)
+server.registerTool(
+  'batch_delete_action_items',
+  {
+    title: 'Delete multiple action items',
+    description: 'Permanently remove many action items in one call. This is a hard delete - confirm with the user first.',
+    inputSchema: { ids: z.array(z.string()) }
+  },
+  wrapBatchIds(deleteActionItem)
 )
 
 // ---------------------------------------------------------------------------
