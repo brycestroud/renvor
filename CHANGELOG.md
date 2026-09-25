@@ -1,5 +1,70 @@
 # Changelog
 
+## Rebrand: gs-field-ops → Renvor (2026-09-25)
+
+Post-Phase-10, product rename per your request: new name "Renvor" and a
+real logo mark (an "R" glyph you provided) replacing the placeholder
+clipboard icon from Phase 10.
+
+### Added
+- `build/icon.ico` / `build/icon.png` regenerated from the real logo
+  (`scripts/assets/renvor-logo-source.jpg`) instead of the generic
+  ClipboardCheck placeholder. `scripts/generate-icon.js` now auto-crops the
+  source (an Electron `<canvas>` scans for the mark's bounding box and
+  centers it with padding on a white square) rather than hand-drawing an
+  SVG, since there's a real logo to work from now.
+- `package.json` name, `electron-builder.yml` `productName`/`appId`,
+  `app.setName()`, the MCP server's identity, window/page titles, the
+  onboarding label, and the sidebar's product-name line all renamed from
+  "gs-field-ops" / "GS Field Operations" to "renvor" / "Renvor".
+- PDF and JSON export filenames renamed to match:
+  `Renvor-Walk_...`, `Renvor-Report_Full/Exec_...`,
+  `Renvor-Data-Export_...` (previously `GS-Walk_`, `GS-Report_`, etc).
+  Default backup folder renamed to `Documents/Renvor Backups` going
+  forward (existing backups already in the old `GS Dashboard Backups`
+  folder are untouched, not moved - see below).
+
+### The important part: data continuity
+- Electron's `userData` folder is named after `app.getName()`/`productName`
+  - renaming the app moves where the database lives
+  (`%APPDATA%\gs-field-ops` → `%APPDATA%\Renvor`). Since you'd already put
+  real data into the app during earlier testing (a real project, a real
+  superintendent, etc.), a naive rename would have made the app look empty
+  on next launch even though nothing was actually lost.
+- Fixed with `migrateLegacyAppDataDirIfNeeded()` (`src/shared/paths.ts`),
+  called once at startup in both the Electron app and the MCP server,
+  before anything touches the database: if the new `Renvor` folder has no
+  database yet and the old `gs-field-ops` folder does, it **copies** (never
+  moves or deletes) the db + WAL/SHM sidecar files across. Idempotent - a
+  no-op on every launch after the first. The old folder is left exactly as
+  it was, so nothing is destroyed even if this needed to be undone.
+- Did **not** attempt to auto-move the `Documents/GS Dashboard Backups`
+  folder - unlike the APPDATA db folder (a fixed, predictable path),
+  backups can live anywhere the user configured, and automating a move
+  across an arbitrary external folder felt riskier than the value it added
+  for a one-time rename. New backups go to the new default location; old
+  ones stay put and are still just files in Documents if you want them.
+
+### Verified
+- Per the standing instruction - no computer-use. Verified via:
+- `npx tsc --noEmit` clean on both configs; `npx vitest run` still 38/38;
+  `npm run build` succeeds (confirmed `renvor@0.1.0` in the build output).
+- `npx playwright test` - the full e2e smoke test still passes end to end
+  post-rename.
+- The migration function itself, for real - not reimplemented/faked in the
+  test: imported the actual `migrateLegacyAppDataDirIfNeeded` from
+  `src/shared/paths.ts` against fake scratch `gs-field-ops`/`Renvor`
+  folders (never your real `%APPDATA%`) and confirmed the db + WAL file
+  copy correctly, an unrelated folder entry (`pre-migration-backups`) is
+  correctly skipped, the old folder is left untouched, and a second call
+  is a true no-op (doesn't clobber a database that already migrated).
+- `file build/icon.ico` confirms a valid 7-size Windows icon resource
+  built from your logo.
+- Bryce, please confirm on your machine that your existing project/
+  superintendent test data actually shows up after this update - the
+  migration is tested against fake data here, not your real file, since I
+  don't touch your real `%APPDATA%` directly per your earlier instruction.
+
 ## Phase 10 — Polish & Package (2026-09-25)
 
 Started with a full audit against the build spec's Section 8 quality bar

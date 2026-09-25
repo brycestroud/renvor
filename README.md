@@ -1,4 +1,4 @@
-# GS Field Operations
+# Renvor
 
 Local Windows desktop app for a General Superintendent: weekly jobsite walks,
 superintendent scoring, action item tracking, and PDF leadership reports.
@@ -74,7 +74,10 @@ Dashboard cache, so they wouldn't appear there for up to 30 seconds.
 
 ## Data & backups
 
-The SQLite database lives in `%APPDATA%\gs-field-ops\gs-dashboard.db`.
+The SQLite database lives in `%APPDATA%\Renvor\gs-dashboard.db` (renamed
+from `%APPDATA%\gs-field-ops` after Phase 10 - the app migrates any existing
+database from the old folder automatically on first launch under the new
+name, copying rather than moving it, so the old folder is left untouched).
 Automatic daily + on-quit backups, manual backup/restore, and JSON
 export/import are all in Settings > Backup & Data (Phase 7).
 
