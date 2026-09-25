@@ -399,7 +399,7 @@ export interface ActionItemDto {
   dueDate: string | null
   priority: 'high' | 'medium' | 'low'
   status: 'open' | 'carried' | 'closed' | 'escalated'
-  source: 'walk' | 'manual' | 'ai_text' | 'ai_walk_scan' | 'procore'
+  source: 'walk' | 'manual' | 'mcp' | 'ai_text' | 'ai_walk_scan' | 'procore'
   sourceSummary: string | null
   originWalkId: string | null
   includeInReport: boolean
@@ -420,7 +420,7 @@ export const createActionItemInput = z.object({
   projectId: z.string().nullable().default(null),
   dueDate: z.string().nullable().default(null),
   priority: z.enum(['high', 'medium', 'low']).default('medium'),
-  source: z.enum(['walk', 'manual', 'ai_text', 'ai_walk_scan', 'procore']).default('manual'),
+  source: z.enum(['walk', 'manual', 'mcp', 'ai_text', 'ai_walk_scan', 'procore']).default('manual'),
   originWalkId: z.string().nullable().default(null)
 })
 export type CreateActionItemInput = z.infer<typeof createActionItemInput>

@@ -181,7 +181,7 @@ export const actionItems = sqliteTable('action_items', {
   status: text('status', { enum: ['open', 'carried', 'closed', 'escalated'] })
     .notNull()
     .default('open'),
-  source: text('source', { enum: ['walk', 'manual', 'ai_text', 'ai_walk_scan', 'procore'] })
+  source: text('source', { enum: ['walk', 'manual', 'mcp', 'ai_text', 'ai_walk_scan', 'procore'] })
     .notNull()
     .default('manual'),
   sourceSummary: text('source_summary'),

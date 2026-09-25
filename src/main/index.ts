@@ -64,7 +64,7 @@ app.whenReady().then(() => {
     })
   }
 
-  runMigrations()
+  runMigrations(join(__dirname, '../../drizzle'))
   registerIpcHandlers()
   createWindow()
 
