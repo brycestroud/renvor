@@ -1,5 +1,62 @@
 # Changelog
 
+## Settings > MCP panel (2026-09-25)
+
+The "AI" settings tab had said "Soon" since Phase 1, left over from the
+original spec's API-key-based AI extraction plan that Phase 8 replaced
+with the MCP connector - the tab itself never got updated to reflect that.
+Renamed it "MCP" and gave it real content per your request.
+
+### Added
+- Settings > MCP: explains what the MCP connector actually does (full
+  read/write access to this app's data for Claude, no API key, no cloud AI
+  calls from the app itself), and shows a ready-to-paste
+  `mcpServers` config block for Claude Desktop with a "Copy config" button
+  (`navigator.clipboard.writeText` - works fine in the sandboxed renderer,
+  no new IPC needed for that part).
+- New `IPC.MCP_GET_CONNECTOR_INFO` handler resolves the real, absolute path
+  to `scripts/run-mcp.js` on this machine at request time, instead of the
+  panel hardcoding a path that would only work on one machine.
+- Company tab's description no longer mentions "AI prompts" (stale text
+  from before the Phase 8 pivot) - now says "anything Claude sees over
+  MCP."
+
+### Real bug found and fixed
+- First implementation resolved the script path via `app.getAppPath()`,
+  which seemed reasonable but is wrong in this exact launch shape: it
+  resolves to `out/main` (the folder holding `index.js`, since there's no
+  `package.json` next to it), not the project root - so the generated
+  config pointed at a script that doesn't exist
+  (`out\main\scripts\run-mcp.js`). Caught by an end-to-end Playwright check
+  that actually parsed the panel's JSON and asserted the resolved path
+  exists on disk, not just that a string was rendered. Fixed using the
+  same pattern Phase 10 already established for `db/migrate.ts`'s
+  migrations-folder path: resolve from the entry file's own `__dirname`
+  and pass it down as a parameter (`registerIpcHandlers(projectRoot)`)
+  rather than computing it inside a module that could end up in a shared
+  Rollup chunk one directory deeper.
+
+### Decisions made without asking again
+- The panel is explicit that this connector method only works "from
+  source" on this machine (`npm run mcp` / `scripts/run-mcp.js`) - a
+  packaged install doesn't ship `scripts/` yet (electron-builder.yml's
+  `files` list is `out/**/*`, `drizzle/**/*`, `package.json` only).
+  Packaging that cleanly for an end-user install (Bryce's friend, not just
+  this dev machine) is real future work, not done here - flagging instead
+  of quietly overselling what "Connect Claude Desktop" currently means for
+  a packaged `.exe`.
+
+### Verified
+- Per the standing instruction - no computer-use. `npx tsc --noEmit` clean
+  on both configs, `npm run build` succeeds, `npx vitest run` still 38/38,
+  and the real committed `npx playwright test` smoke suite still passes.
+- A throwaway Playwright check (not committed - written, run, and deleted
+  in this same turn) drove the actual UI: onboarded, opened Settings > MCP,
+  parsed the rendered JSON config, confirmed the resolved script path
+  exists on disk and points at the right file, and clicked "Copy config"
+  through to its "Copied" state. This is what caught the `app.getAppPath()`
+  bug above - a bare typecheck/build would not have.
+
 ## Rebrand: gs-field-ops → Renvor (2026-09-25)
 
 Post-Phase-10, product rename per your request: new name "Renvor" and a
