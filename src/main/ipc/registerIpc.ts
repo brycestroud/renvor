@@ -32,7 +32,10 @@ import {
   exportWalkPdfInput,
   restoreBackupInput,
   jsonImportCommitInput,
-  legacyImportCommitInput
+  legacyImportCommitInput,
+  getProcoreWalkPanelDataInput,
+  listProcoreOpenObservationsInput,
+  importProcoreObservationsInput
 } from '@shared/ipc-contract'
 import { getAllSettings, setManySettings } from './settingsRepo'
 import { listProjects, createProject, updateProject, archiveProject } from './projectsRepo'
@@ -77,6 +80,7 @@ import { exportWalkPdf, exportFullReportPdf, exportExecSummaryPdf } from '../pdf
 import { performBackup, listBackups, restoreFromBackup } from '../backup/backupManager'
 import { exportJson, importJsonPick, importJsonCommit } from '../backup/jsonBackup'
 import { legacyImportPickAndPreview, legacyImportCommit } from '../backup/legacyImport'
+import { getProcoreWalkPanelData, listProcoreOpenObservations, importProcoreObservations } from './procoreRepo'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.APP_GET_VERSION, () => app.getVersion())
@@ -216,5 +220,15 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.LEGACY_IMPORT_PICK_AND_PREVIEW, () => legacyImportPickAndPreview())
   ipcMain.handle(IPC.LEGACY_IMPORT_COMMIT, (_e, payload: unknown) =>
     legacyImportCommit(legacyImportCommitInput.parse(payload).filePath)
+  )
+
+  ipcMain.handle(IPC.PROCORE_GET_WALK_PANEL_DATA, (_e, payload: unknown) =>
+    getProcoreWalkPanelData(getProcoreWalkPanelDataInput.parse(payload))
+  )
+  ipcMain.handle(IPC.PROCORE_LIST_OPEN_OBSERVATIONS, (_e, payload: unknown) =>
+    listProcoreOpenObservations(listProcoreOpenObservationsInput.parse(payload))
+  )
+  ipcMain.handle(IPC.PROCORE_IMPORT_OBSERVATIONS, (_e, payload: unknown) =>
+    importProcoreObservations(importProcoreObservationsInput.parse(payload))
   )
 }

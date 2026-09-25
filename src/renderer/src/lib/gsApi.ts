@@ -54,7 +54,12 @@ import type {
   JsonImportCommitResult,
   LegacyImportPickResult,
   LegacyImportCommitInput,
-  LegacyImportCommitResult
+  LegacyImportCommitResult,
+  GetProcoreWalkPanelDataInput,
+  ProcoreWalkPanelData,
+  ListProcoreOpenObservationsInput,
+  ProcoreObservationDto,
+  ImportProcoreObservationsInput
 } from '@shared/ipc-contract'
 
 export interface GsApi {
@@ -128,6 +133,10 @@ export interface GsApi {
 
   legacyImportPickAndPreview: () => Promise<LegacyImportPickResult>
   legacyImportCommit: (input: LegacyImportCommitInput) => Promise<LegacyImportCommitResult>
+
+  getProcoreWalkPanelData: (input: GetProcoreWalkPanelDataInput) => Promise<ProcoreWalkPanelData>
+  listProcoreOpenObservations: (input: ListProcoreOpenObservationsInput) => Promise<ProcoreObservationDto[]>
+  importProcoreObservations: (input: ImportProcoreObservationsInput) => Promise<ActionItemDto[]>
 }
 
 declare global {

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ListChecks, Plus, Search, History } from 'lucide-react'
+import { ListChecks, Plus, Search, History, Download } from 'lucide-react'
 import { PageHeader } from '../components/PageHeader'
 import { EmptyState } from '../components/EmptyState'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -9,6 +9,7 @@ import { ActionItemFormModal } from './actionitems/ActionItemFormModal'
 import { HistoryDrawer } from './actionitems/HistoryDrawer'
 import { DeEscalateDialog } from './actionitems/DeEscalateDialog'
 import { EscalationDialog } from './jobwalk/EscalationDialog'
+import { ImportProcoreObservationsDialog } from './actionitems/ImportProcoreObservationsDialog'
 import { gsApi } from '../lib/gsApi'
 import { isActionItemOverdue } from '@shared/scoring'
 import type { ActionItemListDto } from '@shared/ipc-contract'
@@ -59,6 +60,7 @@ export function ActionItems(): JSX.Element {
     queryKey: ['superintendents'],
     queryFn: () => gsApi().listSuperintendents()
   })
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => gsApi().getSettings() })
 
   const [status, setStatus] = useState<StatusFilter>('open')
   const [projectId, setProjectId] = useState('')
@@ -72,6 +74,7 @@ export function ActionItems(): JSX.Element {
   const [escalating, setEscalating] = useState<ActionItemListDto | null>(null)
   const [deEscalating, setDeEscalating] = useState<ActionItemListDto | null>(null)
   const [historyItem, setHistoryItem] = useState<ActionItemListDto | null>(null)
+  const [importingProcore, setImportingProcore] = useState(false)
 
   const today = todayIso()
 
@@ -133,12 +136,24 @@ export function ActionItems(): JSX.Element {
       <PageHeader
         title="Action Items"
         actions={
-          <button
-            onClick={() => setEditing('new')}
-            className="flex items-center gap-1.5 rounded-control bg-brand px-3.5 py-2 text-sm font-medium text-[#171200] transition-colors hover:bg-brand-hover"
-          >
-            <Plus size={16} /> Manual Add
-          </button>
+          <div className="flex gap-2">
+            {settings?.procoreEnabled && (
+              <button
+                onClick={() => setImportingProcore(true)}
+                disabled={!projectId}
+                title={projectId ? undefined : 'Pick a project filter above first'}
+                className="flex items-center gap-1.5 rounded-control border border-border bg-surface-2 px-3.5 py-2 text-sm text-text-secondary transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Download size={16} /> Import from Procore
+              </button>
+            )}
+            <button
+              onClick={() => setEditing('new')}
+              className="flex items-center gap-1.5 rounded-control bg-brand px-3.5 py-2 text-sm font-medium text-[#171200] transition-colors hover:bg-brand-hover"
+            >
+              <Plus size={16} /> Manual Add
+            </button>
+          </div>
         }
       />
 
@@ -368,6 +383,14 @@ export function ActionItems(): JSX.Element {
       {deEscalating && <DeEscalateDialog item={deEscalating} onClose={() => setDeEscalating(null)} />}
 
       {historyItem && <HistoryDrawer item={historyItem} onClose={() => setHistoryItem(null)} />}
+
+      {importingProcore && projectId && (
+        <ImportProcoreObservationsDialog
+          projectId={projectId}
+          projectName={projects?.find((p) => p.id === projectId)?.name ?? 'this project'}
+          onClose={() => setImportingProcore(false)}
+        />
+      )}
 
       {deleting && (
         <ConfirmDialog

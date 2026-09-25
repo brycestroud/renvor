@@ -76,7 +76,11 @@ export const IPC = {
   BACKUP_IMPORT_JSON_COMMIT: 'backup:importJsonCommit',
 
   LEGACY_IMPORT_PICK_AND_PREVIEW: 'legacyImport:pickAndPreview',
-  LEGACY_IMPORT_COMMIT: 'legacyImport:commit'
+  LEGACY_IMPORT_COMMIT: 'legacyImport:commit',
+
+  PROCORE_GET_WALK_PANEL_DATA: 'procore:getWalkPanelData',
+  PROCORE_LIST_OPEN_OBSERVATIONS: 'procore:listOpenObservations',
+  PROCORE_IMPORT_OBSERVATIONS: 'procore:importObservations'
 } as const
 
 export const settingsSchema = z.object({
@@ -90,6 +94,7 @@ export const settingsSchema = z.object({
   needsAttentionDays: z.number().int().positive().default(14),
   weightedScoringEnabled: z.boolean().default(true),
   aiEnabled: z.boolean().default(false),
+  procoreEnabled: z.boolean().default(false),
   escalationMode: z.enum(['record_only', 'mailto', 'smtp']).default('mailto'),
   backupFolder: z.string().nullable().default(null),
   lastBackupAt: z.string().nullable().default(null),
@@ -133,7 +138,12 @@ export const createProjectInput = z.object({
   pmName: z.string().trim().nullable().default(null),
   pmEmail: optionalEmail,
   address: z.string().trim().nullable().default(null),
-  status: z.enum(['active', 'closed']).default('active')
+  status: z.enum(['active', 'closed']).default('active'),
+  // Procore scaffolding (Phase 9) - nullable link fields, only editable in the
+  // UI once Settings > Procore's "procoreEnabled" flag is on. No real Procore
+  // calls use these yet; see docs/PROCORE_INTEGRATION.md.
+  procoreProjectId: z.string().trim().nullable().default(null),
+  procoreCompanyId: z.string().trim().nullable().default(null)
 })
 export type CreateProjectInput = z.infer<typeof createProjectInput>
 
@@ -159,6 +169,7 @@ export interface Superintendent {
   homeProjectId: string | null
   nccerStatus: 'not_started' | 'in_progress' | 'completed'
   notes: string | null
+  procoreUserId: string | null
   active: boolean
   deletedAt: string | null
   createdAt: string
@@ -181,6 +192,8 @@ export const createSuperintendentInput = z.object({
   homeProjectId: z.string().nullable().default(null),
   nccerStatus: z.enum(['not_started', 'in_progress', 'completed']).default('not_started'),
   notes: z.string().trim().nullable().default(null),
+  // Procore scaffolding (Phase 9) - see the matching comment on createProjectInput.
+  procoreUserId: z.string().trim().nullable().default(null),
   active: z.boolean().default(true),
   customFields: z.array(customFieldInput).default([])
 })
@@ -421,6 +434,7 @@ export const createActionItemInput = z.object({
   dueDate: z.string().nullable().default(null),
   priority: z.enum(['high', 'medium', 'low']).default('medium'),
   source: z.enum(['walk', 'manual', 'mcp', 'ai_text', 'ai_walk_scan', 'procore']).default('manual'),
+  sourceSummary: z.string().nullable().default(null),
   originWalkId: z.string().nullable().default(null)
 })
 export type CreateActionItemInput = z.infer<typeof createActionItemInput>
@@ -674,3 +688,58 @@ export interface LegacyImportCommitResult {
 
 export const legacyImportCommitInput = z.object({ filePath: z.string() })
 export type LegacyImportCommitInput = z.infer<typeof legacyImportCommitInput>
+
+// ---------------------------------------------------------------------------
+// Procore (Phase 9 scaffolding - mock data only, gated behind
+// settings.procoreEnabled; see docs/PROCORE_INTEGRATION.md)
+// ---------------------------------------------------------------------------
+export interface ProcoreDailyLogDto {
+  id: string
+  date: string
+  submittedBy: string
+  notes: string
+  photoCount: number
+}
+
+export interface ProcoreObservationDto {
+  id: string
+  number: string
+  type: string
+  status: 'open' | 'closed'
+  description: string
+  assigneeId: string | null
+  assigneeName: string | null
+  createdAt: string
+  dueDate: string | null
+}
+
+export interface ProcoreInspectionDto {
+  id: string
+  name: string
+  status: 'passed' | 'failed' | 'pending'
+  date: string
+  inspector: string
+}
+
+export interface ProcoreWalkPanelData {
+  dailyLogs: ProcoreDailyLogDto[]
+  observations: ProcoreObservationDto[]
+  inspections: ProcoreInspectionDto[]
+}
+
+export const getProcoreWalkPanelDataInput = z.object({
+  projectId: z.string(),
+  superintendentId: z.string(),
+  from: z.string(),
+  to: z.string()
+})
+export type GetProcoreWalkPanelDataInput = z.infer<typeof getProcoreWalkPanelDataInput>
+
+export const listProcoreOpenObservationsInput = z.object({ projectId: z.string() })
+export type ListProcoreOpenObservationsInput = z.infer<typeof listProcoreOpenObservationsInput>
+
+export const importProcoreObservationsInput = z.object({
+  projectId: z.string(),
+  observationIds: z.array(z.string()).min(1)
+})
+export type ImportProcoreObservationsInput = z.infer<typeof importProcoreObservationsInput>

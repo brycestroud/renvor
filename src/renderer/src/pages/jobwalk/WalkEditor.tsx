@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Archive, CheckCircle2, ChevronLeft, ChevronRight, FileText, Mail, RotateCcw } from 'lucide-react'
 import { CategorySection } from './CategorySection'
 import { ActionItemsSection } from './ActionItemsSection'
+import { ProcorePanel } from './ProcorePanel'
 import { EmailWalkDialog } from './EmailWalkDialog'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { inputClass, selectClass } from '../../components/FormField'
@@ -11,9 +12,23 @@ import { gsApi } from '../../lib/gsApi'
 import { isItemDue, type PriorScoreRecord } from '@shared/scoring'
 import type { VisitType, WalkItemScoreDto } from '@shared/ipc-contract'
 
+function mondayOf(dateIso: string): string {
+  const d = new Date(dateIso)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  return new Date(d.setDate(diff)).toISOString().slice(0, 10)
+}
+
+function sundayOf(mondayIso: string): string {
+  const d = new Date(mondayIso)
+  d.setDate(d.getDate() + 6)
+  return d.toISOString().slice(0, 10)
+}
+
 export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => void }): JSX.Element {
   const queryClient = useQueryClient()
   const { data: walk } = useQuery({ queryKey: ['walk', walkId], queryFn: () => gsApi().getWalk(walkId) })
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => gsApi().getSettings() })
   const { data: categories } = useQuery({
     queryKey: ['categories'],
     queryFn: () => gsApi().listCategories()
@@ -43,6 +58,21 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
         projectId: walk!.projectId
       }),
     enabled: Boolean(walk)
+  })
+
+  const procoreEnabled = settings?.procoreEnabled ?? false
+  const { data: procorePanelData, isLoading: procoreLoading } = useQuery({
+    queryKey: ['procore-walk-panel', walk?.projectId, walk?.superintendentId, walk?.date],
+    queryFn: () => {
+      const from = mondayOf(walk!.date)
+      return gsApi().getProcoreWalkPanelData({
+        projectId: walk!.projectId,
+        superintendentId: walk!.superintendentId,
+        from,
+        to: sundayOf(from)
+      })
+    },
+    enabled: Boolean(walk) && procoreEnabled
   })
 
   const [stepMode, setStepMode] = useState(false)
@@ -373,6 +403,15 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
         </button>
       </div>
 
+      {procoreEnabled && (
+        <ProcorePanel
+          data={procorePanelData}
+          isLoading={procoreLoading}
+          projectName={walk.projectName}
+          superintendentName={walk.superintendentName}
+        />
+      )}
+
       {stepMode ? (
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
@@ -405,6 +444,7 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
               onFocusItem={setFocusedItemId}
               onScoreChange={(id, score, isNa) => setScore.mutate({ checklistItemId: id, score, isNa })}
               onNoteSave={(categoryId, notes) => setCategoryNote.mutate({ categoryId, notes })}
+              procoreDailyLogCount={procoreEnabled ? (procorePanelData?.dailyLogs.length ?? null) : null}
             />
           ))}
         </div>
@@ -421,6 +461,7 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
               onFocusItem={setFocusedItemId}
               onScoreChange={(id, score, isNa) => setScore.mutate({ checklistItemId: id, score, isNa })}
               onNoteSave={(categoryId, notes) => setCategoryNote.mutate({ categoryId, notes })}
+              procoreDailyLogCount={procoreEnabled ? (procorePanelData?.dailyLogs.length ?? null) : null}
             />
           ))}
         </div>

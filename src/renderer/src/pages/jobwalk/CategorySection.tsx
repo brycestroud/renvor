@@ -1,9 +1,14 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, ClipboardList } from 'lucide-react'
 import { ScoreSelector } from './ScoreSelector'
 import { useAutosaveText } from '../../lib/useAutosaveText'
 import { categoryScore, scoreBand } from '@shared/scoring'
 import type { CategoryWithItems, WalkItemScoreDto } from '@shared/ipc-contract'
+
+// Procore scaffolding (Phase 9): the build spec's own example of a checklist
+// item that should get a Procore hint. Matched by exact text since it's the
+// one item the spec calls out by name, not a general item<->Procore mapping.
+const PROCORE_DAILY_LOG_ITEM_TEXT = 'Daily reports filled out fully with quality photos'
 
 const bandChip: Record<'green' | 'yellow' | 'red', string> = {
   green: 'bg-success-muted text-success',
@@ -26,7 +31,8 @@ export function CategorySection({
   onFocusItem,
   onScoreChange,
   onNoteSave,
-  defaultExpanded = true
+  defaultExpanded = true,
+  procoreDailyLogCount = null
 }: {
   category: CategoryWithItems
   scoresByItemId: Map<string, WalkItemScoreDto>
@@ -37,6 +43,8 @@ export function CategorySection({
   onScoreChange: (checklistItemId: string, score: number | null, isNa: boolean) => void
   onNoteSave: (categoryId: string, notes: string) => void
   defaultExpanded?: boolean
+  /** null = Procore preview is off; a number (incl. 0) shows the hint. */
+  procoreDailyLogCount?: number | null
 }): JSX.Element {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const activeItems = category.items.filter((i) => i.active)
@@ -90,6 +98,12 @@ export function CategorySection({
                     <div className="mt-1 flex items-center gap-2 text-[11px] text-text-muted">
                       <span>{frequencyLabels[item.frequency]}</span>
                       {due && <span className="font-medium text-brand">DUE</span>}
+                      {procoreDailyLogCount != null && item.text === PROCORE_DAILY_LOG_ITEM_TEXT && (
+                        <span className="flex items-center gap-1 text-info" title="From the Procore this week panel (mock data)">
+                          <ClipboardList size={11} />
+                          {procoreDailyLogCount} log{procoreDailyLogCount === 1 ? '' : 's'} in Procore this week
+                        </span>
+                      )}
                     </div>
                   </div>
                   <ScoreSelector

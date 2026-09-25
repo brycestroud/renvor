@@ -108,6 +108,7 @@ function NewActionItemForm({
         dueDate,
         priority,
         source: 'walk',
+        sourceSummary: null,
         originWalkId: walkId
       }),
     onSuccess: () => {

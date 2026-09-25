@@ -91,6 +91,7 @@ export function createSuperintendent(input: CreateSuperintendentInput): Superint
         homeProjectId: input.homeProjectId || null,
         nccerStatus: input.nccerStatus,
         notes: emptyToNull(input.notes),
+        procoreUserId: emptyToNull(input.procoreUserId),
         active: input.active,
         createdAt: now,
         updatedAt: now
@@ -113,6 +114,7 @@ export function updateSuperintendent(input: UpdateSuperintendentInput): Superint
   if (rest.homeProjectId !== undefined) patch.homeProjectId = rest.homeProjectId || null
   if (rest.nccerStatus !== undefined) patch.nccerStatus = rest.nccerStatus
   if (rest.notes !== undefined) patch.notes = emptyToNull(rest.notes)
+  if (rest.procoreUserId !== undefined) patch.procoreUserId = emptyToNull(rest.procoreUserId)
   if (rest.active !== undefined) patch.active = rest.active
 
   db.transaction((tx) => {

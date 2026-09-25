@@ -15,7 +15,9 @@ const emptyForm: CreateProjectInput = {
   pmName: null,
   pmEmail: null,
   address: null,
-  status: 'active'
+  status: 'active',
+  procoreProjectId: null,
+  procoreCompanyId: null
 }
 
 function ProjectFormModal({
@@ -26,6 +28,7 @@ function ProjectFormModal({
   onClose: () => void
 }): JSX.Element {
   const queryClient = useQueryClient()
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => gsApi().getSettings() })
   const [form, setForm] = useState<CreateProjectInput>(
     project
       ? {
@@ -34,7 +37,9 @@ function ProjectFormModal({
           pmName: project.pmName,
           pmEmail: project.pmEmail,
           address: project.address,
-          status: project.status
+          status: project.status,
+          procoreProjectId: project.procoreProjectId,
+          procoreCompanyId: project.procoreCompanyId
         }
       : emptyForm
   )
@@ -115,6 +120,28 @@ function ProjectFormModal({
             onChange={(e) => setForm({ ...form, address: e.target.value })}
           />
         </FormField>
+
+        {settings?.procoreEnabled && (
+          <div className="grid grid-cols-2 gap-4 rounded-control border border-border-subtle bg-surface-2 p-3">
+            <div className="col-span-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
+              Procore (mock preview - not a real connection yet)
+            </div>
+            <FormField label="Procore project ID">
+              <input
+                className={inputClass}
+                value={form.procoreProjectId ?? ''}
+                onChange={(e) => setForm({ ...form, procoreProjectId: e.target.value })}
+              />
+            </FormField>
+            <FormField label="Procore company ID">
+              <input
+                className={inputClass}
+                value={form.procoreCompanyId ?? ''}
+                onChange={(e) => setForm({ ...form, procoreCompanyId: e.target.value })}
+              />
+            </FormField>
+          </div>
+        )}
 
         {error && <p className="text-sm text-danger">{error}</p>}
 

@@ -33,6 +33,8 @@ export function createProject(input: CreateProjectInput): Project {
       pmEmail: emptyToNull(input.pmEmail),
       address: emptyToNull(input.address),
       status: input.status,
+      procoreProjectId: emptyToNull(input.procoreProjectId),
+      procoreCompanyId: emptyToNull(input.procoreCompanyId),
       createdAt: now,
       updatedAt: now
     })
@@ -50,6 +52,8 @@ export function updateProject(input: UpdateProjectInput): Project {
   if (rest.pmEmail !== undefined) patch.pmEmail = emptyToNull(rest.pmEmail)
   if (rest.address !== undefined) patch.address = emptyToNull(rest.address)
   if (rest.status !== undefined) patch.status = rest.status
+  if (rest.procoreProjectId !== undefined) patch.procoreProjectId = emptyToNull(rest.procoreProjectId)
+  if (rest.procoreCompanyId !== undefined) patch.procoreCompanyId = emptyToNull(rest.procoreCompanyId)
 
   db.update(schema.projects).set(patch).where(eq(schema.projects.id, id)).run()
   return db.select().from(schema.projects).where(eq(schema.projects.id, id)).get()!

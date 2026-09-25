@@ -31,7 +31,10 @@ import {
   type ExportWalkPdfInput,
   type RestoreBackupInput,
   type JsonImportCommitInput,
-  type LegacyImportCommitInput
+  type LegacyImportCommitInput,
+  type GetProcoreWalkPanelDataInput,
+  type ListProcoreOpenObservationsInput,
+  type ImportProcoreObservationsInput
 } from '@shared/ipc-contract'
 
 const api = {
@@ -126,7 +129,14 @@ const api = {
 
   legacyImportPickAndPreview: () => ipcRenderer.invoke(IPC.LEGACY_IMPORT_PICK_AND_PREVIEW),
   legacyImportCommit: (input: LegacyImportCommitInput) =>
-    ipcRenderer.invoke(IPC.LEGACY_IMPORT_COMMIT, input)
+    ipcRenderer.invoke(IPC.LEGACY_IMPORT_COMMIT, input),
+
+  getProcoreWalkPanelData: (input: GetProcoreWalkPanelDataInput) =>
+    ipcRenderer.invoke(IPC.PROCORE_GET_WALK_PANEL_DATA, input),
+  listProcoreOpenObservations: (input: ListProcoreOpenObservationsInput) =>
+    ipcRenderer.invoke(IPC.PROCORE_LIST_OPEN_OBSERVATIONS, input),
+  importProcoreObservations: (input: ImportProcoreObservationsInput) =>
+    ipcRenderer.invoke(IPC.PROCORE_IMPORT_OBSERVATIONS, input)
 }
 
 export type GsApi = typeof api

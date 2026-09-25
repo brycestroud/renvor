@@ -20,6 +20,7 @@ const emptyForm: CreateSuperintendentInput = {
   homeProjectId: null,
   nccerStatus: 'not_started',
   notes: null,
+  procoreUserId: null,
   active: true,
   customFields: []
 }
@@ -33,6 +34,7 @@ export function SuperintendentFormModal({
 }): JSX.Element {
   const queryClient = useQueryClient()
   const { data: projects } = useQuery({ queryKey: ['projects'], queryFn: () => gsApi().listProjects() })
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => gsApi().getSettings() })
   const [form, setForm] = useState<CreateSuperintendentInput>(
     sup
       ? {
@@ -43,6 +45,7 @@ export function SuperintendentFormModal({
           homeProjectId: sup.homeProjectId,
           nccerStatus: sup.nccerStatus,
           notes: sup.notes,
+          procoreUserId: sup.procoreUserId,
           active: sup.active,
           customFields: sup.customFields.map((f) => ({ id: f.id, label: f.label, value: f.value, sortOrder: f.sortOrder }))
         }
@@ -168,6 +171,16 @@ export function SuperintendentFormModal({
             placeholder="Development notes, strengths, areas to work on…"
           />
         </FormField>
+
+        {settings?.procoreEnabled && (
+          <FormField label="Procore user ID (mock preview - not a real connection yet)">
+            <input
+              className={inputClass}
+              value={form.procoreUserId ?? ''}
+              onChange={(e) => setForm({ ...form, procoreUserId: e.target.value })}
+            />
+          </FormField>
+        )}
 
         <label className="flex items-center gap-2 text-sm text-text-secondary">
           <input

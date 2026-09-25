@@ -19,6 +19,7 @@ const emptyForm: CreateActionItemInput = {
   dueDate: addDays(7),
   priority: 'medium',
   source: 'manual',
+  sourceSummary: null,
   originWalkId: null
 }
 
@@ -46,6 +47,7 @@ export function ActionItemFormModal({
           dueDate: item.dueDate,
           priority: item.priority,
           source: item.source,
+          sourceSummary: item.sourceSummary,
           originWalkId: item.originWalkId
         }
       : emptyForm

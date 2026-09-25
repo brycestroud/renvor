@@ -150,6 +150,7 @@ export function createActionItem(input: CreateActionItemInput): ActionItemDto {
       priority: input.priority,
       status: 'open',
       source: input.source,
+      sourceSummary: input.sourceSummary,
       originWalkId: input.originWalkId,
       includeInReport: true,
       createdAt: now,
