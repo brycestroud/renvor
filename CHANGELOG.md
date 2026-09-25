@@ -1,5 +1,62 @@
 # Changelog
 
+## Phase 7 — Backup, Export & Legacy Import (2026-09-25)
+
+### Added
+- Automatic daily backup (checked once on app start, only runs if the
+  last backup is >24h old) plus a backup on every app close/quit -
+  both use better-sqlite3's online `.backup()` API so a backup taken
+  mid-write during WAL mode is never corrupt, unlike a raw file copy.
+  Backups live in `Documents/GS Dashboard Backups` by default (or a
+  folder the GS picks in Settings), newest 30 kept, older pruned
+  automatically.
+- Settings > Backup & Data panel: Back Up Now, a table of existing
+  backups with a Restore action per row (confirmation dialog, takes one
+  more safety backup of current data first, then relaunches the app).
+- Export all data to JSON / Import from JSON - a full-app snapshot of
+  every table, for moving the whole DB to another machine or keeping an
+  external copy. Import is a full replace (all tables cleared and
+  reloaded inside one transaction), gated behind a shape-validated
+  preview and a confirmation dialog, with a safety backup taken first.
+- Legacy Prototype Import - one-time importer for the old web
+  prototype's JSON export. Pick file -> preview (counts + unmatched-
+  checklist-item warnings) -> confirm -> commit. Checklist items are
+  matched to the seeded list by text; anything unmatched becomes an
+  inactive custom item in its stated category so historical walk scores
+  still resolve without cluttering the active checklist. Uses
+  deterministic SHA1-derived IDs throughout so re-running the same file
+  twice is a no-op instead of duplicating data.
+
+### Decisions made without asking again
+- No real sample of the legacy prototype's export was ever provided
+  (Phase 1 answer was "No existing data - start fresh"), so the shape
+  `legacyImport.ts` parses (`{ supers, projects, walks, actions? }`) is
+  inferred from the build spec's own description, not verified against
+  a real file. If Bryce's friend's actual export doesn't match, the
+  importer returns a clear "doesn't match the expected shape, tell
+  Bryce the actual structure" error instead of guessing further or
+  silently importing garbage - flagging this explicitly rather than
+  presenting it as tested.
+- JSON import is a full replace, not a merge - matches what "Import"
+  implies for a single-user local app restoring/migrating a whole
+  dataset, and avoids the much larger ambiguity of merge/conflict
+  resolution the spec never specified.
+
+### Verified
+- Per the standing instruction to stop driving this app with
+  computer-use and just build - no click-through verification this
+  phase. Verified statically only:
+- `npx tsc --noEmit` clean on both `tsconfig.node.json` (main/preload)
+  and `tsconfig.web.json` (renderer).
+- `npx vitest run` - 12/12 passing, unchanged from prior phases (this
+  phase touched no scoring logic).
+- `npm run build` succeeds end to end; preload bundle grew from ~107KB
+  to ~119KB, consistent with the new IPC methods being bundled in.
+- Bryce, please click through this one yourself: Settings > Backup &
+  Data - Back Up Now, look at the backups list, try Export to JSON,
+  and if you've got a real legacy export file, try that flow too
+  before trusting it on real data.
+
 ## Phase 6 — Reports & PDF (2026-09-25)
 
 ### Added
