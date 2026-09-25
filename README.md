@@ -92,38 +92,37 @@ from Settings > About > "Open logs folder" — also shows the app version.
 Full read/write access to the app's data (projects, superintendents,
 people, checklist/categories, walks + scores, action items, dashboard and
 report data — 52 tools total) for Claude to use directly, instead of the
-app calling out to any AI API itself. No network involved: it's a local
-stdio process reading/writing the exact same SQLite file (WAL mode) the
-Electron app uses, so both can run at once.
+app calling out to any AI API itself. Never leaves this computer.
 
-Batch and composite tools keep this usage-efficient — a whole walk (header
-+ every item score + category notes + submit) is one `record_walk` call,
-not dozens of `set_item_score` calls; `batch_create_action_items`,
+**Easiest way to connect (paste a URL):** open the app, go to
+Settings > MCP, and copy the URL shown there (something like
+`http://127.0.0.1:39212/mcp`). In Claude Desktop: Settings > Connectors >
+Add custom connector > paste it in. The Electron app hosts this itself
+(an in-process HTTP MCP server, started when the app launches, stopped
+when it quits) - no separate process to run, no config file to edit.
+Bound to `127.0.0.1` only, with the SDK's DNS-rebinding protection
+(Host-header allow-list) on, since this is full read/write access with no
+authentication otherwise.
+
+**Alternative (stdio, config-file based):** the Settings > MCP panel also
+has a collapsed "prefer a traditional mcpServers config" section with a
+ready-to-paste config block, for clients that want a spawned process
+instead of a URL. Runs the same 52 tools over stdio via
+`scripts/run-mcp.js` (or `npm run mcp` to run it directly) - see that
+script's comments for why it launches the Electron binary itself in
+`ELECTRON_RUN_AS_NODE=1` mode rather than plain `node`/`tsx`
+(`better-sqlite3` here is compiled against Electron's Node ABI, not plain
+Node's).
+
+Both transports share one tool set (`src/mcp/tools.ts`) - batch and
+composite tools keep either one usage-efficient. A whole walk (header +
+every item score + category notes + submit) is one `record_walk` call, not
+dozens of `set_item_score` calls; `batch_create_action_items`,
 `batch_transition_action_items`, `batch_set_item_scores`, and similar
-`batch_*` tools cover the other one-call-per-item cases (creating/
-archiving/deleting many projects, superintendents, people, checklist
-items, action items, or walks at once). Every batch and composite tool
-runs inside a single database transaction — one bad item rolls the whole
-call back rather than leaving a half-applied walk or action-item list.
-
-Run it directly with:
-
-```bash
-npm run build   # only needed after pulling code changes, not every launch
-npm run mcp
-```
-
-To add it as a connector, point your MCP client at:
-
-- **Command:** `node`
-- **Args:** `["<full path to this repo>\\scripts\\run-mcp.js"]`
-
-**Why not just `node out/main/mcp.js` or `tsx src/mcp/server.ts` directly:**
-`better-sqlite3` here is compiled against Electron's Node ABI (see
-`postinstall` above), not plain Node's — loading it from real Node throws a
-`NODE_MODULE_VERSION` mismatch. `scripts/run-mcp.js` launches the Electron
-binary itself in `ELECTRON_RUN_AS_NODE=1` mode instead, which can load that
-same binary while behaving like a plain Node process otherwise.
+`batch_*` tools cover the other one-call-per-item cases. Every batch and
+composite tool runs inside a single database transaction - one bad item
+rolls the whole call back rather than leaving a half-applied walk or
+action-item list.
 
 Settings (company name, brand colors, etc.) are exposed read-only over MCP
 — changing those stays a Settings-UI action, not something done mid-chat.
@@ -145,13 +144,15 @@ OAuth flow, and credential storage plug in later.
 
 ```
 src/main        Electron main process: db, IPC handlers, migrations, seed,
-                integrations/procore (typed interface + mock client)
+                integrations/procore (typed interface + mock client),
+                mcp/httpServer.ts (in-process MCP-over-HTTP server)
 src/preload     Typed contextBridge — the only thing the renderer can call
 src/renderer    React UI
 src/shared      Code shared by main/preload/renderer/mcp: scoring, IPC
                 contract (zod), seed data, path resolution
-src/mcp         Standalone MCP server (built to out/main/mcp.js alongside
-                the Electron main process; see MCP section above)
+src/mcp         MCP tool set (tools.ts, shared by both transports) +
+                standalone stdio server (server.ts, built to out/main/mcp.js
+                alongside the Electron main process; see MCP section above)
 scripts/        run-mcp.js — the ELECTRON_RUN_AS_NODE launcher for src/mcp;
                 generate-icon.js — one-time build/icon.ico generator
 drizzle/        Generated SQL migrations — do not hand-edit

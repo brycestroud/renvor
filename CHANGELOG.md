@@ -1,5 +1,64 @@
 # Changelog
 
+## MCP over HTTP: paste-a-URL connector (2026-09-25)
+
+Follow-up to the Settings > MCP panel above, same day: you clarified you
+wanted an actual URL to paste into Claude Desktop's Custom Connector UI,
+not a config-file snippet. That's a different MCP transport (Streamable
+HTTP, not stdio), so this adds a second transport rather than just
+changing the panel's copy.
+
+### Added
+- `src/main/mcp/httpServer.ts` - an MCP-over-HTTP server the Electron app
+  hosts **in-process**, started when the app launches and stopped when it
+  quits. Bound to `127.0.0.1` only (never `0.0.0.0` - this is full
+  read/write access to the app's data with no authentication, so it must
+  never be network-reachable), plus the SDK's built-in DNS-rebinding
+  protection (`enableDnsRebindingProtection` + a `Host` header allow-list)
+  so a malicious webpage open in any browser on the machine can't `fetch()`
+  it via a spoofed Host header. Fixed port `39212` (not random) so the URL
+  the user pastes into Claude Desktop once stays valid across app restarts.
+- Extracted all `server.registerTool(...)` calls out of `src/mcp/server.ts`
+  into `src/mcp/tools.ts` (`registerMcpTools(server)`), so the exact same
+  52-tool set is shared between the stdio server (`npm run mcp`, a
+  separate process, for clients that want a config-file entry) and the new
+  in-process HTTP server. One tool set, two transports - not a second
+  feature set to maintain.
+- Settings > MCP panel rewritten to lead with the URL (big copyable code
+  box + status dot showing whether the HTTP server actually started) and a
+  live/error status line; the config-file/stdio method moved to a
+  collapsed "prefer a traditional mcpServers config instead?" section
+  underneath, not removed.
+- `IPC.MCP_GET_CONNECTOR_INFO` now returns both: the live HTTP URL +
+  running/error status, and the stdio command/args/config snippet as
+  before.
+
+### Why in-process instead of a second spawned process
+- The HTTP server runs inside the same already-running Electron process
+  that handles everything else - unlike the stdio server, there's no
+  separate-process/ELECTRON_RUN_AS_NODE dance needed to load
+  better-sqlite3's Electron-ABI binary, since it's the exact same process
+  already calling `getDb()` for the rest of the app. Simpler, and it also
+  sidesteps the "packaged installs don't ship `scripts/`" gap the stdio
+  method still has (flagged in the previous entry) - the HTTP URL works
+  for a packaged install too, once one exists, with zero extra packaging
+  work.
+
+### Verified
+- Per the standing instruction - no computer-use. `npx tsc --noEmit` clean
+  on both configs, `npm run build` succeeds, `npx vitest run` still 38/38,
+  and the real committed `npx playwright test` smoke suite still passes.
+- A throwaway, real end-to-end check (written, run, and deleted in this
+  same turn - not left in the repo) that actually exercised the HTTP
+  transport, not just the UI: launched the app, connected a real MCP
+  `Client` over `StreamableHTTPClientTransport` to
+  `http://127.0.0.1:39212/mcp`, listed all 52 tools, called `create_project`
+  over HTTP, confirmed the write landed via `list_projects` over the same
+  connection, and - importantly - sent a raw request with a spoofed `Host:
+  evil.example.com` header and confirmed the server actually rejects it
+  (403), proving the DNS-rebinding protection is live, not just configured
+  and silently doing nothing.
+
 ## Settings > MCP panel (2026-09-25)
 
 The "AI" settings tab had said "Soon" since Phase 1, left over from the
