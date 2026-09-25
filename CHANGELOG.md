@@ -1,5 +1,48 @@
 # Changelog
 
+## Phase 5 — Dashboard & Superintendent Detail (2026-09-25)
+
+### Added
+- Dashboard: stat tiles (Active Supers, Walks This Week, Avg Score for
+  the selected range, Open Action Items, Overdue), a date-range selector
+  (This Week / Last 30 / Last 90 [default] / YTD / All Time), a Needs
+  Attention strip (no walk within Settings' configurable threshold, or
+  any category average under 3.0), and a sortable matrix (one row per
+  active super, one column per category plus Overall when weighted
+  scoring is on, sticky name column, horizontal scroll for all 13
+  categories). Row click opens Superintendent Detail.
+- Superintendent Detail: profile header (contact, home project, NCCER,
+  custom fields) with Edit, all-time category chips, a trend chart
+  (Overall always shown, pick one category to compare), walk history
+  table, and that super's open action items. Clicking a walk in history
+  deep-links into the Job Walk editor via a new `?walk=` param.
+- `SuperintendentFormModal` extracted out of Superintendents.tsx into a
+  shared component so Detail's Edit button reuses it instead of
+  duplicating the form.
+
+### Decisions made without asking again
+- Matrix category averages are "average of that super's walk-level
+  category scores over the selected range" per spec section 4 literally
+  - computed as categoryScore per walk, then unweightedAverage across
+    walks in range, reusing the same shared/scoring.ts functions the Job
+    Walk screen already uses. No new scoring logic was written.
+- "Last walk date" and the Needs Attention threshold use the super's
+  most recent walk overall, not range-restricted - a walk from before
+  the selected range still counts for "no walk in N days."
+- Trend chart shows one compare-category line at a time rather than all
+  13 at once (unreadable at that count); Overall is always plotted.
+
+### Verified
+- Live in the Electron window (before a mid-session usage-limit
+  interruption): matrix picked up a submitted walk's scores correctly,
+  Needs Attention flagged a sub-3.0 category, the Overall column
+  computed correctly, and the walk-history deep link opened the right
+  walk in the Job Walk editor.
+- After resuming: typecheck, `npm test` (12/12), and `npm run build`
+  all still pass. Confirmed via a read-only DB check (no writes) that
+  real project/superintendent data entered during the gap was untouched
+  by anything done in this session.
+
 ## Phase 4 — Action Items + walk archive (2026-09-24)
 
 ### Added
