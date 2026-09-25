@@ -1,5 +1,42 @@
 # Changelog
 
+## Settings > Getting Started (2026-09-25)
+
+Follow-up to a question about distributing this to other people: each
+person gets their own private install (no shared server, no accounts -
+confirmed explicitly, matches everything built so far), and a PWA rebuild
+was explicitly scoped out rather than half-built - Renvor's entire data
+layer is SQLite via an Electron-only native module, so "make it a PWA"
+would mean re-architecting the DB layer, PDF export, backups, and MCP
+access from scratch, not a settings toggle. Skipping that, this adds the
+actual ask: a setup guide in Settings for whoever downloads this next.
+
+### Added
+- Settings > Getting Started - new first tab (default landing spot,
+  replacing Company as the default). Four numbered steps: install/launch,
+  confirm company info (with a live checkmark once onboarding's done),
+  add projects/supers/checklist/people (jump buttons to the real tabs),
+  and connect Claude Desktop via MCP - the URL box is inlined right on
+  this page, not just linked to, since that's the one step with real
+  friction (a manual paste into Claude Desktop's Connectors settings -
+  there's no way for an app to register itself there, by design).
+- Extracted `CopyButton` (`src/renderer/src/components/CopyButton.tsx`)
+  and `McpConnectBox` (`src/renderer/src/pages/settings/McpConnectBox.tsx`,
+  the URL box + live status dot) out of the MCP panel so both it and
+  Getting Started use the same one, not two copies.
+
+### Verified
+- Per the standing instruction - no computer-use. `npx tsc --noEmit` clean
+  on both configs, `npm run build` succeeds, `npx vitest run` still 38/38,
+  `npx playwright test` (the real committed suite) still passes.
+- A throwaway, real end-to-end check (written, run, deleted in this same
+  turn): onboarded, opened Settings, confirmed it lands on Getting Started
+  by default (not Company), confirmed the onboarding-complete checkmark
+  shows the real company name, confirmed the inline MCP URL box renders a
+  real URL, and clicked "Go to Company" through to the actual Company tab
+  with the real saved value showing in the field - not just that the
+  buttons exist, that they navigate to the right place with real data.
+
 ## MCP over HTTP: paste-a-URL connector (2026-09-25)
 
 Follow-up to the Settings > MCP panel above, same day: you clarified you
