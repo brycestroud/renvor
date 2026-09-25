@@ -2,7 +2,25 @@
 
 ## Phase 8 — MCP Connector (2026-09-25)
 
-### Added
+### Added (batch/composite tools, same-day follow-up)
+- 14 new `batch_*` tools (create/archive/delete many projects,
+  superintendents, people, checklist items, action items, or walks in one
+  call instead of one call per item) plus two composite tools:
+  `record_walk` (create a walk and set every item score, category note,
+  and overall/follow-up notes, then submit - all in one call instead of
+  create_walk + dozens of set_item_score calls) and
+  `batch_set_item_scores` (re-score many items on an existing walk in one
+  call). Total tool count: 38 -> 52. Direct response to your "make sure i
+  can do many things in one call... not one task per call" - the walk
+  scoring flow especially: a real walk can be 30-80 checklist items, which
+  was 30-80 separate tool calls before this.
+- Every batch/composite tool runs its writes inside a single
+  `db.transaction()` - one bad item rolls the WHOLE call back rather than
+  leaving a half-applied walk or action-item list. Verified with an
+  automated test that intentionally sends one invalid item inside a
+  3-item batch and confirms zero rows land, not 2 out of 3.
+
+### Added (Phase 8 base)
 - Full read/write MCP server (`src/mcp/server.ts`, 38 tools) covering
   settings (read-only), projects, superintendents, people, categories/
   checklist items, walks (create through submit/archive, item scoring,
@@ -79,6 +97,12 @@
   DB (didn't want to mutate real data without you around to check it);
   they're the same repo functions the already-verified IPC layer already
   uses, just called directly.
+- The batch/composite tools were different: those needed a real write
+  test, so a second automated smoke test ran against a throwaway scratch
+  database (a temp-dir APPDATA override, never the live file) exercising
+  `record_walk`, `batch_set_item_scores`, `batch_create_action_items`,
+  `batch_transition_action_items`, and the atomicity guarantee (one bad
+  item in a 3-item batch -> zero rows land). All passed.
 - Bryce, please try connecting this to Claude yourself before relying on
   it: `npm run build` once, then point your MCP client at `node
   scripts/run-mcp.js` per the README's MCP section, and try a couple of

@@ -65,10 +65,20 @@ export/import are all in Settings > Backup & Data (Phase 7).
 
 Full read/write access to the app's data (projects, superintendents,
 people, checklist/categories, walks + scores, action items, dashboard and
-report data — 38 tools total) for Claude to use directly, instead of the
+report data — 52 tools total) for Claude to use directly, instead of the
 app calling out to any AI API itself. No network involved: it's a local
 stdio process reading/writing the exact same SQLite file (WAL mode) the
 Electron app uses, so both can run at once.
+
+Batch and composite tools keep this usage-efficient — a whole walk (header
++ every item score + category notes + submit) is one `record_walk` call,
+not dozens of `set_item_score` calls; `batch_create_action_items`,
+`batch_transition_action_items`, `batch_set_item_scores`, and similar
+`batch_*` tools cover the other one-call-per-item cases (creating/
+archiving/deleting many projects, superintendents, people, checklist
+items, action items, or walks at once). Every batch and composite tool
+runs inside a single database transaction — one bad item rolls the whole
+call back rather than leaving a half-applied walk or action-item list.
 
 Run it directly with:
 
