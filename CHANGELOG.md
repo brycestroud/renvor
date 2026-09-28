@@ -1,5 +1,58 @@
 # Changelog
 
+## MCP server: CORS headers (2026-09-28)
+
+You confirmed the cert-trust fix from before - `Continue anyway` had let
+you save the connector, but the underlying connection still failed - and
+you'd genuinely completed the Windows trust wizard already. Verified that
+directly: a fresh check via Electron's `net` module AND Node's `fetch`
+both now succeed against the cert on this machine, confirming the trust
+step itself worked. So the remaining failure had to be something else.
+
+### Root cause
+- Every way this server had been verified so far - Node's `fetch`/`https`,
+  Electron's `net` module, `curl` - runs from a **process**, not a
+  **browser page**, so none of them are subject to CORS at all. Claude
+  Desktop's connector UI almost certainly runs its reachability check from
+  a Chromium **renderer** (it's the actual dialog you're looking at), which
+  *is* subject to CORS - a cross-origin `fetch()` with a custom
+  `Content-Type`/`Accept` header triggers a preflight `OPTIONS` request
+  first. The server had no CORS headers at all; confirmed directly that
+  `OPTIONS /mcp` was returning a bare `405 Method Not Allowed` with no
+  `Access-Control-*` headers. A browser blocks a request like that
+  client-side before the page ever sees a real response - which presents
+  identically to "couldn't reach this address," even though the server
+  was right there answering every non-browser client that asked.
+
+### Added
+- `httpServer.ts` now answers `OPTIONS /mcp` with `204` and
+  `Access-Control-Allow-Origin` (reflecting the request's `Origin`),
+  `Access-Control-Allow-Methods`, and `Access-Control-Allow-Headers`
+  (reflecting `Access-Control-Request-Headers`), and adds
+  `Access-Control-Allow-Origin` to every other response too - a
+  successful preflight isn't enough on its own; the browser also blocks
+  reading the *real* response afterward without that header present on
+  it as well.
+
+### Verified
+- Per the standing instruction - no computer-use. `npx tsc --noEmit`
+  clean, `npm run build` succeeds, `npx vitest run` still 38/38,
+  `npx playwright test` (the real committed suite) still passes.
+- Before touching any code: independently re-confirmed the cert-trust fix
+  actually worked (Electron `net` and Node `fetch` both now succeed
+  against the real running server's cert), which is what narrowed the
+  problem down to something CORS-shaped rather than re-litigating the
+  certificate.
+- After the fix: launched a scratch-profile instance of the actual built
+  app and, with certificate validation deliberately bypassed for this one
+  diagnostic (a fresh scratch profile gets its own fresh untrusted cert,
+  which is a separate concern from the CORS bug being tested), confirmed
+  with a real `Origin: https://claude.ai` header that `OPTIONS /mcp` now
+  returns `204` with the three `Access-Control-*` headers present and
+  correct, and that a real `POST /mcp` response carries
+  `Access-Control-Allow-Origin` too - not just that the preflight passes,
+  that the actual response would be readable by a browser afterward.
+
 ## MCP cert trust: real detection + guided fix (2026-09-25)
 
 Follow-up to the HTTPS switch above, same day: you tried pasting the new
