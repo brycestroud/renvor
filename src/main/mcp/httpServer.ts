@@ -23,6 +23,13 @@
  * self-signed one (cert.ts) covering localhost/127.0.0.1 - Claude Desktop
  * (or any client) may still warn about or refuse an untrusted certificate;
  * that's a client-side trust decision this server can't make for it.
+ *
+ * CORS headers on every response: Claude Desktop's connector UI checks
+ * this URL from a Chromium renderer, not a plain HTTP client - a
+ * cross-origin fetch() with custom headers triggers a preflight OPTIONS
+ * request, and without Access-Control-* headers the browser blocks it
+ * before Claude Desktop's UI ever sees a response (looks identical to
+ * "couldn't reach this address," even though the server answered fine).
  */
 import { createServer, type Server } from 'https'
 import { randomUUID } from 'crypto'
@@ -62,6 +69,27 @@ export async function startMcpHttpServer(): Promise<{ ok: true } | { ok: false; 
 
   return new Promise((resolve) => {
     const server = createServer({ key, cert }, (req, res) => {
+      // Claude Desktop's connector UI runs its reachability check from a
+      // Chromium renderer (unlike everything used to verify this server so
+      // far - Node's fetch/https, Electron's net module - none of which are
+      // subject to CORS at all, since that's a browser/renderer concept).
+      // A renderer-side fetch() with a custom Content-Type/Accept header is
+      // cross-origin here and triggers a CORS preflight; without these
+      // headers the browser blocks it client-side before Claude Desktop's
+      // UI ever sees a real response, which presents identically to
+      // "couldn't reach this address."
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin ?? '*')
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        req.headers['access-control-request-headers'] ?? 'Content-Type, Accept, Mcp-Session-Id, Last-Event-ID'
+      )
+      res.setHeader('Access-Control-Expose-Headers', 'Mcp-Session-Id')
+
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204).end()
+        return
+      }
       if (!req.url || !req.url.startsWith('/mcp')) {
         res.writeHead(404).end()
         return
