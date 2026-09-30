@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.1 (2026-09-30)
+
+Release used to test the in-app update flow end to end (0.1.0 installed, then
+updated to this version through the Update button). No functional changes.
+
 ## Phone app, Customize tab, brand colors, How It Works (2026-09-30)
 
 ### Added
