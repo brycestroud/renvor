@@ -62,8 +62,15 @@ import type {
   ImportProcoreObservationsInput,
   OpenLogsFolderResult,
   McpConnectorInfo,
-  OpenCertFileResult
+  OpenCertFileResult,
+  OpenClaudeConfigFolderResult,
+  PhoneAccessInfo,
+  CustomizeInfo,
+  OpenSourceResult,
+  UpdateStatus
 } from '@shared/ipc-contract'
+
+import { createApi } from '@shared/apiBridge'
 
 export interface GsApi {
   getAppVersion: () => Promise<string>
@@ -145,6 +152,20 @@ export interface GsApi {
 
   getMcpConnectorInfo: () => Promise<McpConnectorInfo>
   openMcpCertFile: () => Promise<OpenCertFileResult>
+  openClaudeConfigFolder: () => Promise<OpenClaudeConfigFolderResult>
+
+  getPhoneInfo: () => Promise<PhoneAccessInfo>
+  setPhoneEnabled: (enabled: boolean) => Promise<PhoneAccessInfo>
+  resetPhoneLink: () => Promise<PhoneAccessInfo>
+  setPhoneAutostart: (enabled: boolean) => Promise<PhoneAccessInfo>
+
+  getUpdateStatus: () => Promise<UpdateStatus>
+  checkForUpdates: () => Promise<UpdateStatus>
+  downloadUpdate: () => Promise<UpdateStatus>
+  installUpdate: () => Promise<UpdateStatus>
+
+  getCustomizeInfo: () => Promise<CustomizeInfo>
+  openCustomizeSource: () => Promise<OpenSourceResult>
 }
 
 declare global {
@@ -153,4 +174,35 @@ declare global {
   }
 }
 
-export const gsApi = (): GsApi => window.gsApi
+/**
+ * True when running as the phone/browser build served by the desktop app
+ * (no Electron preload injected window.gsApi) - desktop-only features
+ * (file dialogs, PDF export, backups, MCP) are hidden there.
+ */
+export const isRemote = typeof window !== 'undefined' && !window.gsApi
+
+async function remoteInvoke(channel: string, payload?: unknown): Promise<unknown> {
+  // Page lives at /app/<token>/ - the token in the path is the credential.
+  const base = window.location.pathname.replace(/[^/]*$/, '')
+  let res: Response
+  try {
+    res = await fetch(`${base}api/invoke`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel, payload })
+    })
+  } catch {
+    throw new Error("Can't reach Renvor on your computer. Is it open and on the same Wi-Fi?")
+  }
+  const json = (await res.json().catch(() => null)) as
+    | { ok: true; result: unknown }
+    | { ok: false; error: string }
+    | null
+  if (!json) throw new Error(`Unexpected response (${res.status}) from Renvor.`)
+  if (!json.ok) throw new Error(json.error)
+  return json.result
+}
+
+const remoteApi = createApi(remoteInvoke, () => {}) as unknown as GsApi
+
+export const gsApi = (): GsApi => window.gsApi ?? remoteApi

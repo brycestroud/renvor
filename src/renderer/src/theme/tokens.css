@@ -24,15 +24,21 @@
   --text-muted: #7f8997;
   --text-disabled: #596270;
 
+  /* --brand and --info are overridden at runtime with the user's chosen
+     brand/accent colors (Settings > Company) - App.tsx sets them as inline
+     styles on <html>, which beats any selector here. The four shades below
+     derive from that single value with color-mix() so a user-picked color
+     still gets a full, coherent hover/pressed/muted/border ramp instead of
+     just one flat swatch everywhere. */
   --brand: #ff8a24;
-  --brand-hover: #ff9b42;
-  --brand-pressed: #e97012;
-  --brand-muted: #332113;
-  --brand-border: #68401e;
+  --brand-hover: color-mix(in srgb, var(--brand) 88%, white);
+  --brand-pressed: color-mix(in srgb, var(--brand) 82%, black);
+  --brand-muted: color-mix(in srgb, var(--brand) 22%, var(--canvas));
+  --brand-border: color-mix(in srgb, var(--brand) 55%, var(--canvas));
 
   --info: #4ea1ff;
-  --info-hover: #72b4ff;
-  --info-muted: #14283d;
+  --info-hover: color-mix(in srgb, var(--info) 85%, white);
+  --info-muted: color-mix(in srgb, var(--info) 18%, var(--canvas));
 
   --success: #3ac48d;
   --success-muted: #122c24;
@@ -58,14 +64,14 @@
   --text-disabled: #b3b9bf;
 
   --brand: #ff8a24;
-  --brand-hover: #e97012;
-  --brand-pressed: #c95f0e;
-  --brand-muted: #fdece0;
-  --brand-border: #f0b988;
+  --brand-hover: color-mix(in srgb, var(--brand) 85%, black);
+  --brand-pressed: color-mix(in srgb, var(--brand) 72%, black);
+  --brand-muted: color-mix(in srgb, var(--brand) 12%, white);
+  --brand-border: color-mix(in srgb, var(--brand) 45%, white);
 
   --info: #2f7fe0;
-  --info-hover: #1f6bc7;
-  --info-muted: #e5f0ff;
+  --info-hover: color-mix(in srgb, var(--info) 80%, black);
+  --info-muted: color-mix(in srgb, var(--info) 10%, white);
 
   --success: #1f9d6c;
   --success-muted: #e2f6ee;

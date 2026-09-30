@@ -1,5 +1,135 @@
 # Changelog
 
+## Phone app, Customize tab, brand colors, How It Works (2026-09-30)
+
+### Added
+- **Settings > Phone App**: turn on, scan a QR code, add to Home Screen, and
+  the phone runs the same app against the same database while Renvor is open
+  (see README > Phone app). Verified with a real throwaway e2e on the built
+  app + scratch data: off by default; server starts; index/manifest/icons/JS
+  served; wrong token, no token and path traversal refused; API reads and
+  writes the shared DB (desktop sees a phone-created project); invalid
+  payloads rejected by the same zod schemas; 8 desktop-only channels blocked;
+  Reset link kills the old link; turning off stops the server; a mobile
+  (390px, Edge-emulated) run of Dashboard/Job Walk/Actions/Supers/Settings
+  with no console errors. Unit tests for LAN address ranking, private-client
+  filtering and token comparison (`lan.test.ts`).
+- **Settings > Customize**: source bundle in the installer + a prompt for AI
+  coding tools so anyone with the installed app can change it.
+- **Settings > How It Works**, Phone App and Customize entries; Getting Started
+  has a phone step.
+- Responsive shell: bottom tab bar + drawer on phones, wrapping page headers,
+  scrollable Settings tabs.
+
+### Installer + in-app updates (added same day)
+- **First real installer built**: `release/Renvor-Setup-0.1.0.exe` (+ blockmap
+  + latest.yml). Getting there found and fixed two real packaging bugs:
+  1. An `extraResources` entry with `from: .` made electron-builder drop
+     `package.json` from `app.asar` (build failed its own sanity check). The
+     source bundle is now staged by `scripts/prepare-source-bundle.js`.
+  2. (Earlier) migrations path in packaged installs - now proven: a packaged
+     copy on a scratch profile boots, runs migrations, seeds 13 categories.
+- **Packaged-app checks that passed**: phone server serves the UI from inside
+  `app.asar`; the source bundle ships and copies; the stdio MCP config
+  (`Renvor.exe` + `app.asar\out\main\mcp.js`) connects and lists 52 tools.
+- **Update button**: top-bar "Update to vX" + Settings > About > Updates
+  (electron-updater on GitHub Releases; checks 15s after launch and every
+  6h; download -> silent install -> relaunch, only after a click). Release
+  workflow `.github/workflows/release.yml` publishes when a `v*` tag is
+  pushed (tag must equal package.json version). Verified with a local fake
+  feed against the packaged app: finds 9.9.9, shows the button, captures
+  release notes, downloads and passes the checksum, reports up-to-date when
+  versions match. Not run: the actual install-and-relaunch step (it would
+  run an installer), the GitHub workflow, and a real GitHub feed - the repo
+  owner/name in `electron-builder.yml` is a placeholder until you set it.
+- Signing-tools step still needs Windows Developer Mode locally; the test
+  installer was built with `signAndEditExecutable=false`, so its `Renvor.exe`
+  lacks the embedded icon - the GitHub workflow (or Developer Mode) gives the
+  branded one.
+
+### Tailscale + always-on (added same day, on request)
+- Phone App is now Tailscale-first (works from any network): guided install,
+  live Tailscale detection, a scoped firewall rule, QR for the Tailscale
+  address; same-Wi-Fi kept as a fallback tab. Closing the window keeps Renvor
+  running in the tray while phone access is on; optional start-with-Windows in
+  the installed app; single-instance lock.
+- **Bug caught before shipping:** the first version treated any 100.64.0.0/10
+  address as Tailscale. This PC's *cellular* adapter holds a carrier-NAT
+  address in that block (100.95.60.150), which the e2e run exposed as
+  unreachable. Detection now requires the adapter to be named Tailscale, and
+  100.x clients are only accepted if they arrived on that adapter.
+  Verified: 11 unit tests, and an e2e of tray behavior (closing the window
+  hides it, the server keeps serving, turning phone access off works).
+- **Not tested:** Tailscale itself is not installed on this PC, so the actual
+  phone-over-Tailscale path, the firewall rule, and start-with-Windows are
+  unverified end to end.
+
+### Fixed
+- **Brand colors did nothing.** Primary/Accent were saved but never applied;
+  they now drive `--brand` / `--info` (and derived shades via color-mix()).
+- **Claude Desktop connector** - see the entry below (stdio config is the
+  supported path; the URL dialog can never reach localhost).
+- Packaged installs looked for `drizzle/` in the wrong place (see below).
+
+### Refactors
+- `registerIpc.ts` records handlers in a registry; `preload` now builds its API
+  from `src/shared/apiBridge.ts` so the phone build reuses it.
+
+### Not verified
+- Real-phone Add-to-Home-Screen on iOS/Android, Tailscale end to end, and the
+  firewall rule were not tested on physical devices (packaged-build behaviour
+  is covered above).
+
+## MCP connector: switched Claude Desktop setup to stdio config (2026-09-28)
+
+You reported the connector still failed with the same error after the CORS
+fix. Added temporary request logging to the HTTP server, rebuilt, had you
+retry - the log showed **zero requests from Claude Desktop ever reached
+the server**, only Renvor's own periodic self-check. That ruled out
+everything app-side.
+
+### Root cause
+Claude Desktop's "Add custom connector" dialog runs its reachability check
+from Anthropic's own servers, not the local machine - confirmed via
+[anthropics/claude-ai-mcp#917](https://github.com/anthropics/claude-ai-mcp/issues/917)
+and Anthropic's own connector docs. `127.0.0.1`/`localhost` on Anthropic's
+server is Anthropic's own loopback, never this computer. No cert fix, no
+CORS fix, nothing server-side could ever have made this work - the
+paste-a-URL flow is fundamentally remote-only.
+
+### Fix
+- Flipped Settings > MCP and Getting Started to lead with the stdio
+  `mcpServers` config (the method that actually works with Claude
+  Desktop), with the HTTPS URL method demoted to a collapsed "other MCP
+  clients" section.
+- The generated config's `command` now points at `process.execPath` (this
+  running app's own executable) instead of a system `node` +
+  `scripts/run-mcp.js` - works identically in dev and in a packaged
+  install, and doesn't require Node.js to be installed on the user's
+  machine at all.
+- New `Settings > MCP` → "Open Claude config folder" button
+  (`shell.openPath` on `%APPDATA%\Claude`) so setup doesn't require the
+  user to type an AppData path by hand.
+- Verified for real: a standalone MCP SDK client spawned with the exact
+  generated `command`/`args`/`env` (against a scratch `APPDATA`) connected,
+  listed all 52 tools, and successfully called `get_settings`.
+
+### Real bug found and fixed along the way
+Switching the stdio config to point at the packaged app's own binary
+surfaced a latent bug in how migrations resolve their path when packaged:
+`join(__dirname, '../../drizzle')` assumes `drizzle/` sits two directories
+above the running JS file, true in dev but not once `out/**/*` is packed
+into `app.asar` — `drizzle/` ships as an `extraResources` sibling of
+`app.asar`, not inside it. This affected the **main app's own boot
+sequence** too (`src/main/index.ts`), not just MCP - a packaged install
+would have failed to find its migrations on first launch. Fixed both call
+sites (`index.ts` via `app.isPackaged`; `src/mcp/server.ts`, which has no
+`app` module to ask in `ELECTRON_RUN_AS_NODE` mode, via a
+`RENVOR_DRIZZLE_DIR` env var the spawning process resolves and passes
+through). Not yet verified against a real packaged build - `build:win`
+still needs Windows Developer Mode enabled on this machine to produce one
+(see README > Build).
+
 ## MCP server: CORS headers (2026-09-28)
 
 You confirmed the cert-trust fix from before - `Continue anyway` had let

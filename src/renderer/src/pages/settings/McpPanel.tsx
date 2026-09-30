@@ -1,16 +1,10 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import { CopyButton } from '../../components/CopyButton'
+import { StdioConnectBox } from './StdioConnectBox'
 import { McpConnectBox } from './McpConnectBox'
-import { gsApi } from '../../lib/gsApi'
 
 export function McpPanel(): JSX.Element {
-  const { data: info } = useQuery({
-    queryKey: ['mcp-connector-info'],
-    queryFn: () => gsApi().getMcpConnectorInfo()
-  })
-  const [showStdio, setShowStdio] = useState(false)
+  const [showUrlMethod, setShowUrlMethod] = useState(false)
 
   return (
     <div className="flex max-w-2xl flex-col gap-4">
@@ -28,39 +22,31 @@ export function McpPanel(): JSX.Element {
         <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
           Connect Claude Desktop
         </p>
-        <p className="mt-1.5 text-xs text-text-secondary">
-          Claude Desktop &gt; Settings &gt; Connectors &gt; Add custom connector &gt; paste this
-          URL.
-        </p>
         <div className="mt-3">
-          <McpConnectBox />
+          <StdioConnectBox />
         </div>
       </div>
 
       <div>
         <button
-          onClick={() => setShowStdio(!showStdio)}
+          onClick={() => setShowUrlMethod(!showUrlMethod)}
           className="flex items-center gap-1 text-xs text-text-muted hover:text-text-secondary"
         >
-          {showStdio ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          Prefer a traditional mcpServers config instead?
+          {showUrlMethod ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          Using a different MCP client (not Claude Desktop)?
         </button>
-        {showStdio && info && (
+        {showUrlMethod && (
           <div className="mt-2 rounded-control border border-border-subtle bg-surface-2 p-4">
             <p className="text-xs text-text-secondary">
-              For clients that use a config file (e.g. Claude Desktop&apos;s Developer &gt; Edit
-              Config) instead of a pasted URL. Runs the same tools over stdio instead of HTTP.
+              Some MCP clients connect directly to a URL instead of a config file. This{' '}
+              <span className="font-semibold text-text-primary">doesn&apos;t work with Claude
+              Desktop specifically</span> - its &quot;Add custom connector&quot; dialog checks
+              reachability from Anthropic&apos;s own servers, which can never reach a URL on this
+              computer. Use the config method above for Claude Desktop.
             </p>
-            <pre className="mt-3 overflow-x-auto rounded-control border border-border-subtle bg-canvas p-3 font-mono text-xs text-text-primary">
-              {info.stdioConfigSnippet}
-            </pre>
-            <div className="mt-2">
-              <CopyButton text={info.stdioConfigSnippet} label="Copy config" />
+            <div className="mt-3">
+              <McpConnectBox />
             </div>
-            <p className="mt-3 text-[11px] text-text-muted">
-              This points at this computer&apos;s copy of the app running from source. A packaged
-              install doesn&apos;t ship this yet - the URL above works either way.
-            </p>
           </div>
         )}
       </div>

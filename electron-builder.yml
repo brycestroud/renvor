@@ -6,10 +6,15 @@ directories:
 files:
   - out/**/*
   - drizzle/**/*
-  - package.json
 extraResources:
   - from: drizzle
     to: drizzle
+  # Editable source shipped with the installer so an installed copy can be
+  # customized (Settings > Customize copies this to DocumentsRenvor Source).
+  # Staged by scripts/prepare-source-bundle.js - see that file for why this
+  # is not `from: .` with a filter.
+  - from: build/source-bundle
+    to: source
 asarUnpack:
   - '**/*.node'
 win:
@@ -24,3 +29,13 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
+
+# Where the installed app looks for new versions (Settings > About, and the
+# top-bar Update button). Releases are GitHub Releases on this repo; the
+# workflow in .github/workflows/release.yml creates them when a v* tag is
+# pushed. Points at github.com/brycestroud/renvor.
+publish:
+  provider: github
+  owner: brycestroud
+  repo: renvor
+  releaseType: release

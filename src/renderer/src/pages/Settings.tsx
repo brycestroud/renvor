@@ -6,34 +6,49 @@ import { ChecklistPanel } from './settings/ChecklistPanel'
 import { BackupPanel } from './settings/BackupPanel'
 import { McpPanel } from './settings/McpPanel'
 import { GettingStartedPanel } from './settings/GettingStartedPanel'
-import { gsApi } from '../lib/gsApi'
+import { HowItWorksPanel } from './settings/HowItWorksPanel'
+import { PhoneSetupPanel } from './settings/PhoneSetupPanel'
+import { CustomizePanel } from './settings/CustomizePanel'
+import { UpdatesCard } from './settings/UpdatesCard'
+import { gsApi, isRemote } from '../lib/gsApi'
 import type { AppSettings } from '@shared/ipc-contract'
 
 export type Group =
   | 'getting-started'
+  | 'phone'
+  | 'how-it-works'
   | 'company'
   | 'people'
   | 'checklist'
   | 'mcp'
+  | 'customize'
   | 'notifications'
   | 'backup'
   | 'appearance'
   | 'about'
 
-const groups: Array<{ key: Group; label: string; ready: boolean }> = [
+// Groups that need the desktop app itself (file dialogs, this computer's config) - hidden on the phone.
+const desktopOnly = new Set<Group>(['getting-started', 'phone', 'mcp', 'customize', 'notifications', 'backup', 'about'])
+
+const allGroups: Array<{ key: Group; label: string; ready: boolean }> = [
   { key: 'getting-started', label: 'Getting Started', ready: true },
+  { key: 'phone', label: 'Phone App', ready: true },
+  { key: 'how-it-works', label: 'How It Works', ready: true },
   { key: 'company', label: 'Company', ready: true },
   { key: 'people', label: 'People', ready: true },
   { key: 'checklist', label: 'Checklist', ready: true },
   { key: 'mcp', label: 'MCP', ready: true },
+  { key: 'customize', label: 'Customize', ready: true },
   { key: 'notifications', label: 'Notifications', ready: false },
   { key: 'backup', label: 'Backup & Data', ready: true },
   { key: 'appearance', label: 'Appearance', ready: true },
   { key: 'about', label: 'About', ready: true }
 ]
 
+const groups = isRemote ? allGroups.filter((g) => !desktopOnly.has(g.key)) : allGroups
+
 export function Settings(): JSX.Element {
-  const [active, setActive] = useState<Group>('getting-started')
+  const [active, setActive] = useState<Group>(isRemote ? 'company' : 'getting-started')
   const queryClient = useQueryClient()
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => gsApi().getSettings() })
   const { data: appVersion } = useQuery({ queryKey: ['app-version'], queryFn: () => gsApi().getAppVersion() })
@@ -62,13 +77,13 @@ export function Settings(): JSX.Element {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Settings" />
-      <div className="flex gap-6">
-        <div className="flex w-[200px] shrink-0 flex-col gap-1">
+      <div className="flex flex-col gap-4 md:flex-row md:gap-6">
+        <div className="flex w-full shrink-0 gap-1 overflow-x-auto md:w-[200px] md:flex-col">
           {groups.map((g) => (
             <button
               key={g.key}
               onClick={() => setActive(g.key)}
-              className={`flex items-center justify-between rounded-control px-3 py-2 text-left text-sm transition-colors ${
+              className={`flex shrink-0 items-center justify-between whitespace-nowrap rounded-control px-3 py-2 text-left text-sm transition-colors ${
                 active === g.key
                   ? 'bg-surface-2 text-text-primary'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
@@ -80,7 +95,7 @@ export function Settings(): JSX.Element {
           ))}
         </div>
 
-        <div className="flex-1 rounded-panel border border-border-subtle bg-surface-1 p-6">
+        <div className="min-w-0 flex-1 rounded-panel border border-border-subtle bg-surface-1 p-4 md:p-6">
           {active === 'company' && (
             <div className="flex max-w-md flex-col gap-4">
               <div>
@@ -156,6 +171,9 @@ export function Settings(): JSX.Element {
           )}
 
           {active === 'getting-started' && <GettingStartedPanel onNavigate={setActive} />}
+          {active === 'how-it-works' && <HowItWorksPanel />}
+          {active === 'phone' && <PhoneSetupPanel />}
+          {active === 'customize' && <CustomizePanel />}
           {active === 'people' && <PeoplePanel />}
           {active === 'checklist' && <ChecklistPanel />}
           {active === 'mcp' && <McpPanel />}
@@ -171,6 +189,7 @@ export function Settings(): JSX.Element {
                 <span className="text-text-secondary">Version</span>
                 <span className="font-mono text-text-primary">{appVersion ?? '—'}</span>
               </div>
+              <UpdatesCard />
               <div>
                 <button
                   onClick={() => {
@@ -191,6 +210,9 @@ export function Settings(): JSX.Element {
           )}
 
           {active !== 'getting-started' &&
+            active !== 'how-it-works' &&
+            active !== 'phone' &&
+            active !== 'customize' &&
             active !== 'company' &&
             active !== 'appearance' &&
             active !== 'people' &&

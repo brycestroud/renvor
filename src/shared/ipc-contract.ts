@@ -85,7 +85,21 @@ export const IPC = {
   LOGS_OPEN_FOLDER: 'logs:openFolder',
 
   MCP_GET_CONNECTOR_INFO: 'mcp:getConnectorInfo',
-  MCP_OPEN_CERT_FILE: 'mcp:openCertFile'
+  MCP_OPEN_CERT_FILE: 'mcp:openCertFile',
+  MCP_OPEN_CLAUDE_CONFIG_FOLDER: 'mcp:openClaudeConfigFolder',
+
+  PHONE_GET_INFO: 'phone:getInfo',
+  PHONE_SET_ENABLED: 'phone:setEnabled',
+  PHONE_RESET_LINK: 'phone:resetLink',
+  PHONE_SET_AUTOSTART: 'phone:setAutostart',
+
+  UPDATE_GET_STATUS: 'update:getStatus',
+  UPDATE_CHECK: 'update:check',
+  UPDATE_DOWNLOAD: 'update:download',
+  UPDATE_INSTALL: 'update:install',
+
+  CUSTOMIZE_GET_INFO: 'customize:getInfo',
+  CUSTOMIZE_OPEN_SOURCE: 'customize:openSource'
 } as const
 
 export const settingsSchema = z.object({
@@ -100,6 +114,7 @@ export const settingsSchema = z.object({
   weightedScoringEnabled: z.boolean().default(true),
   aiEnabled: z.boolean().default(false),
   procoreEnabled: z.boolean().default(false),
+  phoneAccessEnabled: z.boolean().default(false),
   escalationMode: z.enum(['record_only', 'mailto', 'smtp']).default('mailto'),
   backupFolder: z.string().nullable().default(null),
   lastBackupAt: z.string().nullable().default(null),
@@ -761,19 +776,27 @@ export interface OpenLogsFolderResult {
 // MCP connector
 // ---------------------------------------------------------------------------
 export interface McpConnectorInfo {
-  /** Paste directly into Claude Desktop's Settings > Connectors > Add custom connector. */
+  /**
+   * NOT usable with Claude Desktop's "Add custom connector" dialog - that
+   * dialog's reachability check runs from Anthropic's servers, which can
+   * never reach 127.0.0.1 (that's THEIR loopback, not this machine's).
+   * Kept for other MCP clients that connect to a URL directly.
+   */
   url: string
   httpServerRunning: boolean
   httpServerError: string | null
   /**
    * Whether this machine's OS/certificate store already trusts the
    * server's self-signed cert - checked with a real strict-TLS request to
-   * itself, not assumed. False means Claude Desktop (or any client) will
-   * see "couldn't reach this address" until the cert is trusted once via
-   * "Open certificate" below.
+   * itself, not assumed. Only relevant to the URL method above.
    */
   certTrusted: boolean
-  /** Alternative for a traditional stdio mcpServers config entry, if preferred. */
+  /**
+   * The stdio mcpServers config entry - the one that actually works with
+   * Claude Desktop. command is this app's own executable (dev or packaged)
+   * re-launched in ELECTRON_RUN_AS_NODE mode, so no separate Node.js
+   * install is required on the user's machine.
+   */
   stdioCommand: string
   stdioArgs: string[]
   stdioConfigSnippet: string
@@ -782,4 +805,88 @@ export interface McpConnectorInfo {
 export interface OpenCertFileResult {
   success: boolean
   error: string | null
+}
+
+export interface OpenClaudeConfigFolderResult {
+  success: boolean
+  error: string | null
+}
+
+// ---------------------------------------------------------------------------
+// Phone app (LAN web server + installable web app)
+// ---------------------------------------------------------------------------
+export interface PhoneAddress {
+  /** e.g. "Wi-Fi" */
+  name: string
+  address: string
+  /** Full link to open/scan on the phone, token included. */
+  url: string
+  /** tailscale = works from anywhere the phone has Tailscale on; lan = same Wi-Fi only. */
+  kind: 'tailscale' | 'lan'
+}
+
+export interface PhoneAccessInfo {
+  enabled: boolean
+  running: boolean
+  error: string | null
+  port: number
+  /** Tailscale address first (works anywhere), then same-Wi-Fi addresses. */
+  addresses: PhoneAddress[]
+  /** True when this computer has a Tailscale address (Tailscale installed, signed in, connected). */
+  tailscaleDetected: boolean
+  /** Start with Windows (hidden in the tray) so the phone works without opening Renvor first. */
+  autostart: { supported: boolean; enabled: boolean }
+  /** PowerShell (run as Administrator) that lets Tailscale traffic reach the phone server, and nothing else. */
+  firewallCommand: string
+  /** False when the built web app files are missing (dev without `npm run build`). */
+  appFilesAvailable: boolean
+  /** ISO time a phone last loaded the app or made a request, else null. */
+  lastPhoneSeenAt: string | null
+  /** Ready-to-paste prompt for an AI assistant to help set up or troubleshoot. */
+  aiPrompt: string
+}
+
+// ---------------------------------------------------------------------------
+// App updates (GitHub Releases via electron-updater)
+// ---------------------------------------------------------------------------
+export type UpdateState =
+  | 'unsupported' // development copy - updates only exist in the installed app
+  | 'idle'
+  | 'checking'
+  | 'up-to-date'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'installing'
+  | 'error'
+
+export interface UpdateStatus {
+  state: UpdateState
+  currentVersion: string
+  latestVersion: string | null
+  /** 0-100 while downloading. */
+  percent: number | null
+  releaseNotes: string | null
+  error: string | null
+  lastCheckedAt: string | null
+}
+
+// ---------------------------------------------------------------------------
+// Customize (source bundled with the installer)
+// ---------------------------------------------------------------------------
+export interface CustomizeInfo {
+  /** Where the editable source lives (or will be copied to) on this computer. */
+  sourceFolder: string
+  /** True once the source has been copied out and is ready to edit. */
+  sourceReady: boolean
+  /** False only in an unusual install that didn't ship the source bundle. */
+  bundleAvailable: boolean
+  dataFolder: string
+  aiPrompt: string
+}
+
+export interface OpenSourceResult {
+  success: boolean
+  error: string | null
+  sourceFolder: string | null
 }

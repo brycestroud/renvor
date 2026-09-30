@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2 } from 'lucide-react'
-import { McpConnectBox } from './McpConnectBox'
+import { StdioConnectBox } from './StdioConnectBox'
 import { gsApi } from '../../lib/gsApi'
 import type { Group } from '../Settings'
 
@@ -110,12 +110,44 @@ export function GettingStartedPanel({ onNavigate }: { onNavigate: (group: Group)
       >
         <p>
           Lets Claude read/write this app&apos;s data directly - no API key, nothing leaves this
-          computer. Three steps: open Claude Desktop, go to Settings &gt; Connectors &gt; Add
-          custom connector, and paste the URL below. Only works while Renvor is open.
+          computer. Only works while Renvor is open. Setup is a config file paste, not a Claude
+          Desktop button - the steps are exact below.
         </p>
         <div className="mt-3">
-          <McpConnectBox />
+          <StdioConnectBox />
         </div>
+      </StepCard>
+
+      <StepCard
+        number={5}
+        title="Use it on your phone (optional)"
+        action={
+          <button
+            onClick={() => onNavigate('phone')}
+            className="rounded-control border border-border bg-surface-1 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover"
+          >
+            Set up phone app
+          </button>
+        }
+      >
+        Scan a code, add it to your Home Screen, and it works like a normal app - same data as
+        this computer, live. Takes about a minute.
+      </StepCard>
+
+      <StepCard
+        number={6}
+        title="Not sure what something means?"
+        action={
+          <button
+            onClick={() => onNavigate('how-it-works')}
+            className="rounded-control border border-border bg-surface-1 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover"
+          >
+            Go to How It Works
+          </button>
+        }
+      >
+        Plain-language answers for every concept in the app - scoring, red flags, action item
+        statuses, backups, MCP, all of it.
       </StepCard>
     </div>
   )

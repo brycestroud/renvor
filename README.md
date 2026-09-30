@@ -7,7 +7,7 @@ accounts. The only network calls the app ever makes are the optional AI
 extraction feature and the future Procore integration; everything else,
 including the MCP server, is local.
 
-Status: **Phases 1-10 complete** (Foundation through Polish & Package). See
+Status: **Phases 1-10 complete, plus phone app + customize** (Foundation through Polish & Package). See
 `CHANGELOG.md` for what's built so far and the build spec for the full phase
 plan.
 
@@ -42,17 +42,49 @@ npm run build       # type-checks + builds main/preload/renderer to out/
 npm run build:win   # also packages a Windows NSIS installer to release/
 ```
 
-`build:win` requires Windows "Developer Mode" enabled (Settings > Privacy &
-Security > For developers) or an elevated terminal — electron-builder needs
-to extract a signing-tools archive that uses symlinks, and creating symlinks
-without one of those two is blocked by Windows. This is a one-time machine
-setting, not a project issue. The installer icon (`build/icon.ico`) is
-already generated and wired up in `electron-builder.yml`; it just can't be
-verified end-to-end (embedded into the actual `.exe`) on this machine until
-that setting is on, since even `electron-builder --win --dir` hits the same
-symlink block. See `scripts/generate-icon.js` if the icon ever needs
-regenerating — it's built entirely from the app's own default brand colors
-and an existing `lucide-react` icon, no external image assets.
+`build:win` (which also stages the editable source bundle the installer
+ships - `scripts/prepare-source-bundle.js`) needs Windows "Developer Mode"
+enabled (Settings > System > For developers) or an elevated terminal:
+electron-builder unpacks a signing-tools archive containing symlinks, and
+Windows blocks creating symlinks without one of those two. One-time machine
+setting, not a project issue. Without it you can still produce a working
+**test** installer with
+`npx electron-builder --win -c.win.signAndEditExecutable=false`, but that
+skips embedding the icon/version into `Renvor.exe` (shortcuts show the
+default Electron icon), so don't ship that one. GitHub Actions runners
+allow symlinks, so the release workflow below produces the fully branded
+installer regardless. See `scripts/generate-icon.js` if the icon needs
+regenerating.
+
+## Releasing an update
+
+Installed copies check GitHub Releases (on startup and every 6 hours, plus
+Settings > About > Check for updates) and show an **Update to vX.Y.Z**
+button in the top bar. One click downloads it, backs up the data, installs
+silently and relaunches; nothing installs without that click. (electron-
+updater; `src/main/updater.ts`.)
+
+1. Once: set `publish.owner` / `publish.repo` in `electron-builder.yml` to
+   your real GitHub repo (it's a placeholder now - updates can't work until
+   this is real), and make the repo public (or the app can't read releases).
+2. Bump `"version"` in `package.json` (e.g. `0.2.0`), commit, push.
+3. Tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
+   `.github/workflows/release.yml` verifies the tag matches `package.json`,
+   runs typecheck + tests, builds the installer, and publishes a GitHub
+   Release with `Renvor-Setup-0.2.0.exe`, its `.blockmap` and `latest.yml`.
+   Anyone running an older install sees the button.
+4. Your website can link to the latest installer at
+   `https://github.com/OWNER/REPO/releases/latest`.
+
+Release notes shown in the app come from the GitHub Release description.
+The installer is **not code-signed**, so Windows SmartScreen will say
+"unknown publisher" on first install until you buy a code-signing
+certificate (electron-builder picks one up from `CSC_LINK`/`CSC_KEY_PASSWORD`
+with no code change). Updates themselves still work unsigned.
+
+Test hooks (used by the automated checks, harmless otherwise):
+`RENVOR_UPDATE_FEED_URL` points the updater at a local feed;
+`RENVOR_PHONE_PORT` moves the phone server off 39213.
 
 ## Tests
 
@@ -94,38 +126,31 @@ people, checklist/categories, walks + scores, action items, dashboard and
 report data — 52 tools total) for Claude to use directly, instead of the
 app calling out to any AI API itself. Never leaves this computer.
 
-**Easiest way to connect (paste a URL):** open the app, go to
-Settings > MCP (or Getting Started), and copy the URL shown there
-(something like `https://127.0.0.1:39212/mcp` - **https**, since Claude
-Desktop's custom connector requires it even for localhost). In Claude
-Desktop: Settings > Connectors > Add custom connector > paste it in. The
-Electron app hosts this itself (an in-process HTTPS MCP server, started
-when the app launches, stopped when it quits) - no separate process to
-run, no config file to edit. Bound to `127.0.0.1` only, with the SDK's
-DNS-rebinding protection (Host-header allow-list) on, since this is full
-read/write access with no authentication otherwise.
+**Setup (Claude Desktop): paste a config, not a URL.** Settings > MCP (or
+Getting Started) has the exact steps and a ready-to-copy `mcpServers`
+block, plus an "Open Claude config folder" button. `command` points at
+this copy of Renvor's own executable, re-launched in
+`ELECTRON_RUN_AS_NODE=1` mode (generated fresh by the app each time, from
+`process.execPath` — works for a packaged install too, no separate Node.js
+install required on the user's machine) — not `node scripts/run-mcp.js`,
+which needed a system Node.js and only worked from a source checkout.
+Verified end to end: a real MCP SDK client spawned with the exact
+generated command/args/env connects, lists all 52 tools, and successfully
+calls one.
 
-**One-time step: trust the certificate.** No real certificate authority
-issues certs for `127.0.0.1`, so this is self-signed (cached in
-`%APPDATA%\Renvor\mcp-cert\`, generated once) - and unlike a plain warning
-you can click past, Claude Desktop's connector does strict validation and
-will just say "couldn't reach this address" until this computer trusts it.
-The MCP panel detects this for real (an actual request through Electron's
-own Chromium-backed network stack - not Node's `https` module, which uses
-its own bundled CA list and would never see this trust change at all) and
-shows an "Open certificate" button with the exact Windows Certificate
-Import Wizard steps (Current User store, not Local Machine, so no admin
-rights needed) when it's not trusted yet.
-
-**Alternative (stdio, config-file based):** the Settings > MCP panel also
-has a collapsed "prefer a traditional mcpServers config" section with a
-ready-to-paste config block, for clients that want a spawned process
-instead of a URL. Runs the same 52 tools over stdio via
-`scripts/run-mcp.js` (or `npm run mcp` to run it directly) - see that
-script's comments for why it launches the Electron binary itself in
-`ELECTRON_RUN_AS_NODE=1` mode rather than plain `node`/`tsx`
-(`better-sqlite3` here is compiled against Electron's Node ABI, not plain
-Node's).
+Claude Desktop's own **"Add custom connector" paste-a-URL flow does not
+work for this** and never will, regardless of certs or CORS — its
+reachability check runs from Anthropic's own servers, not this machine, so
+`127.0.0.1`/`localhost` can never resolve to anything reachable. Confirmed
+by diagnostic request logging (zero requests from Claude Desktop ever hit
+the local server across repeated retries) and by
+[Anthropic's own tracked issue](https://github.com/anthropics/claude-ai-mcp/issues/917)
+and [connector docs](https://support.claude.com/en/articles/11175166). An
+in-process HTTPS MCP server (`src/main/mcp/httpServer.ts`, self-signed
+cert, bound to `127.0.0.1` only, DNS-rebinding protection on) still runs
+and is exposed as a secondary, collapsed option in Settings > MCP, for
+other MCP clients whose connector flow genuinely does connect straight to
+a local URL rather than routing reachability checks through a cloud hop.
 
 Both transports share one tool set (`src/mcp/tools.ts`) - batch and
 composite tools keep either one usage-efficient. A whole walk (header +
@@ -141,6 +166,59 @@ Settings (company name, brand colors, etc.) are exposed read-only over MCP
 — changing those stays a Settings-UI action, not something done mid-chat.
 Action items created via MCP use `source: "mcp"` so their origin is honest
 in the UI rather than looking hand-entered.
+
+## Phone app (Settings > Phone App)
+
+Off until turned on. Renvor then runs a small web server on this computer
+(port 39213, `src/main/phone/phoneServer.ts`) that serves the same built UI
+and runs the **same handlers** as Electron IPC (`registerIpc.ts` records every
+handler in a registry; the phone's `POST /app/<token>/api/invoke` calls that
+registry) - so the phone reads and writes the one database on this computer,
+live, with no sync layer. The screen-to-backend method list lives in one
+place (`src/shared/apiBridge.ts`), wired to `ipcRenderer` by the preload and
+to `fetch` by `lib/gsApi.ts` when there's no preload (the phone).
+
+- **Anywhere access via Tailscale (the primary path):** the server listens on
+  all interfaces, so once Tailscale (free) is on this PC and the phone, the
+  same link works from any network. The setup UI walks through installing
+  Tailscale on both devices (with live detection of this PC's Tailscale
+  adapter), one narrow Windows Firewall rule (TCP 39213 from
+  `100.64.0.0/10` only, copy-paste PowerShell run by the user as
+  administrator), the QR code, Add to Home Screen, and a "phone connected"
+  check. Same-Wi-Fi-only remains as a tab. Tailscale detection requires the
+  interface to be named Tailscale: carrier NAT also uses 100.64.0.0/10 (a
+  laptop's cellular modem here holds one), and a 100.x client is only
+  accepted when the connection arrived on the Tailscale adapter.
+- **Always available:** with phone access on, closing the window hides
+  Renvor to the system tray instead of quitting (tray menu: Open / Quit);
+  the installed app can also start with Windows, hidden in the tray. One
+  Renvor instance at a time (a second launch focuses the first). The PC must
+  stay awake.
+- Setup UI also has troubleshooting, Reset link, and a copy-paste AI prompt
+  (which never includes the private link).
+- Security: opt-in; link token (192-bit, stored in
+  `%APPDATA%\Renvor\phone-link-token.txt`) is the credential; only
+  private-network clients are answered; desktop-only channels (file dialogs,
+  PDF export, backups, MCP, phone/customize settings) are refused server
+  side. Plain HTTP on the LAN by design - it avoids a certificate step on
+  every phone, so anyone on the same Wi-Fi with the link can use it.
+- It's a web app (manifest + Apple meta tags), not an offline app: it works
+  while Renvor is open on the computer. Android over plain HTTP may add a
+  shortcut rather than a full install; iPhone Safari adds a full-screen app.
+- Phone layout: bottom tab bar under 768px wide; desktop-only Settings tabs
+  are hidden. In dev the server serves `out/renderer`, so run
+  `npm run build` to refresh what the phone sees.
+
+## Customize (Settings > Customize)
+
+The installer ships the source (`electron-builder.yml` extraResources ->
+`resources/source`). "Open source folder" copies it to
+`Documents\Renvor Source` (never overwriting an existing copy) and shows a
+prompt to paste into an AI coding tool: layout of the code, first-time setup
+(git, npm install, npm run dev), how to add a feature end to end, and how to
+build a new installer. Data in `%APPDATA%\Renvor` is unaffected by code
+changes. Verified against a real packaged build (the bundle ships in
+`resources/source` and copies to an editable folder).
 
 ## Procore (scaffolding only, mock data)
 

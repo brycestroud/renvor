@@ -71,7 +71,7 @@ function NavRow({ item }: { item: NavItem }): JSX.Element {
 
 export function Sidebar({ companyName }: { companyName: string }): JSX.Element {
   return (
-    <aside className="flex h-full w-[228px] shrink-0 flex-col border-r border-border bg-sidebar">
+    <aside className="flex h-full w-full shrink-0 md:w-[228px] flex-col border-r border-border bg-sidebar">
       <div className="flex flex-col gap-0.5 border-b border-border-subtle px-4 py-4">
         <span className="truncate text-sm font-semibold text-text-primary">
           {companyName || 'Company Name'}

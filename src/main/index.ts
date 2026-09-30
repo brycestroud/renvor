@@ -1,11 +1,16 @@
 import { app, shell, BrowserWindow, session } from 'electron'
 import { join } from 'path'
 import { runMigrations } from './db/migrate'
-import { registerIpcHandlers } from './ipc/registerIpc'
+import { registerIpcHandlers, invokeHandlerForPhone } from './ipc/registerIpc'
 import { performBackup, shouldRunDailyBackup } from './backup/backupManager'
 import { installGlobalErrorLogging, logInfo, logError } from './logger'
 import { migrateLegacyAppDataDirIfNeeded } from '@shared/paths'
 import { startMcpHttpServer, stopMcpHttpServer } from './mcp/httpServer'
+import { initPhoneServer, startPhoneServerIfEnabled, stopPhoneServer } from './phone/phoneServer'
+import { initCustomize } from './customize/customize'
+import { initUpdater } from './updater'
+import { ensureTray, isQuitting, launchedHidden, markQuitting } from './phone/background'
+import { getAllSettings } from './ipc/settingsRepo'
 
 // Pin userData/productName so the MCP server (standalone Node process) can
 // compute the exact same %APPDATA% path without needing Electron itself.
@@ -18,6 +23,25 @@ migrateLegacyAppDataDirIfNeeded()
 installGlobalErrorLogging()
 
 const isDev = !app.isPackaged
+
+// One Renvor at a time: a second launch (e.g. the tray copy is already running
+// and the user clicks the shortcut) just brings the first one forward.
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) app.quit()
+
+function showMainWindow(): void {
+  const win = BrowserWindow.getAllWindows()[0]
+  if (!win) return
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+}
+
+app.on('second-instance', showMainWindow)
+
+function trayIconPath(): string {
+  return join(__dirname, '../renderer/icon-192.png')
+}
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -39,7 +63,24 @@ function createWindow(): void {
     }
   })
 
-  win.once('ready-to-show', () => win.show())
+  win.once('ready-to-show', () => {
+    // Started with Windows: stay in the tray, but only if phone access is on -
+    // otherwise an invisible app would be confusing.
+    if (launchedHidden() && getAllSettings().phoneAccessEnabled) {
+      ensureTray({ iconPath: trayIconPath(), showWindow: showMainWindow })
+    } else {
+      win.show()
+    }
+  })
+
+  // With phone access on the app has to keep running for the phone to work, so
+  // closing the window hides it to the tray; "Quit Renvor" there really quits.
+  win.on('close', (event) => {
+    if (isQuitting() || !getAllSettings().phoneAccessEnabled) return
+    event.preventDefault()
+    win.hide()
+    ensureTray({ iconPath: trayIconPath(), showWindow: showMainWindow })
+  })
 
   // Skipped under the Playwright e2e suite: an auto-opened DevTools window
   // would otherwise race the app window for electronApp.firstWindow().
@@ -61,6 +102,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  if (!gotLock) return
   // Strict CSP only in production. In dev, the renderer is served by Vite's
   // own dev server (HMR + React Refresh inject an inline preamble script),
   // which a locked-down script-src would break; the packaged app loads
@@ -78,8 +120,14 @@ app.whenReady().then(() => {
     })
   }
 
-  runMigrations(join(__dirname, '../../drizzle'))
+  // Packaged: __dirname is inside app.asar, but drizzle/ was shipped as an
+  // extraResource OUTSIDE the asar (electron-builder.yml), so it's a sibling
+  // of app.asar under resourcesPath, not two dirs up from __dirname.
+  runMigrations(isDev ? join(__dirname, '../../drizzle') : join(process.resourcesPath, 'drizzle'))
   registerIpcHandlers(join(__dirname, '../..'))
+  initCustomize({ projectRoot: join(__dirname, '../..') })
+  // out/main/index.js -> out/renderer (inside app.asar when packaged, which fs reads transparently)
+  initPhoneServer({ rendererDir: join(__dirname, '../renderer'), invoke: invokeHandlerForPhone })
   createWindow()
   logInfo(`App ready (version ${app.getVersion()}, ${isDev ? 'dev' : 'packaged'})`)
 
@@ -88,6 +136,10 @@ app.whenReady().then(() => {
       if (!result.ok) console.error('MCP HTTP server failed to start:', result.error)
     })
     .catch((err) => logError('MCP HTTP server failed to start', err))
+
+  initUpdater()
+
+  startPhoneServerIfEnabled().catch((err) => logError('Phone server failed to start', err))
 
   if (shouldRunDailyBackup()) {
     performBackup()
@@ -110,6 +162,7 @@ app.on('window-all-closed', () => {
 // Back up once more on every close, not just the once-a-day check above.
 let quittingAfterBackup = false
 app.on('before-quit', (event) => {
+  markQuitting()
   if (quittingAfterBackup) return
   event.preventDefault()
   performBackup()
@@ -119,6 +172,7 @@ app.on('before-quit', (event) => {
     })
     .finally(() => {
       stopMcpHttpServer()
+      stopPhoneServer()
       quittingAfterBackup = true
       app.quit()
     })

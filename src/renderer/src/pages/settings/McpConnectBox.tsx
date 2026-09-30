@@ -3,7 +3,10 @@ import { CheckCircle2, AlertTriangle } from 'lucide-react'
 import { CopyButton } from '../../components/CopyButton'
 import { gsApi } from '../../lib/gsApi'
 
-/** The URL + copy button + live status - shared by the MCP tab and the Getting Started tab. */
+/**
+ * The URL + copy button + live status, for MCP clients that connect
+ * directly to a URL (NOT Claude Desktop - see StdioConnectBox for that).
+ */
 export function McpConnectBox(): JSX.Element {
   const queryClient = useQueryClient()
   const { data: info, isLoading } = useQuery({

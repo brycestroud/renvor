@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
+import { MobileTabBar } from './MobileTabBar'
 import { gsApi } from '../lib/gsApi'
 
 const pageLabels: Record<string, string> = {
@@ -17,20 +19,37 @@ const pageLabels: Record<string, string> = {
 
 export function AppShell(): JSX.Element {
   const location = useLocation()
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => gsApi().getSettings() })
 
+  useEffect(() => setDrawerOpen(false), [location.pathname])
+
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-canvas text-text-primary">
-      <Sidebar companyName={settings?.companyName ?? ''} />
+    <div className="flex h-[100dvh] w-screen overflow-hidden bg-canvas text-text-primary">
+      <div className="hidden h-full md:flex">
+        <Sidebar companyName={settings?.companyName ?? ''} />
+      </div>
+
+      {drawerOpen && (
+        <div className="fixed inset-0 z-40 md:hidden" onClick={() => setDrawerOpen(false)}>
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="relative h-full w-[260px] max-w-[80vw]" onClick={(e) => e.stopPropagation()}>
+            <Sidebar companyName={settings?.companyName ?? ''} />
+          </div>
+        </div>
+      )}
+
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           pageLabel={pageLabels[location.pathname] ?? 'Renvor'}
           lastBackupAt={settings?.lastBackupAt ?? null}
         />
-        <main className="flex-1 overflow-y-auto px-6 py-6">
+        <main className="flex-1 overflow-y-auto px-3 py-4 pb-24 md:px-6 md:py-6 md:pb-6">
           <Outlet />
         </main>
       </div>
+
+      <MobileTabBar onMore={() => setDrawerOpen(true)} />
     </div>
   )
 }

@@ -15,6 +15,7 @@ export default defineConfig({
   test: {
     // e2e/ holds Playwright specs (run via `npm run test:e2e`), not vitest
     // tests - Playwright's own `test` global isn't vitest-compatible.
-    exclude: ['node_modules/**', 'e2e/**']
+    // release/ and build/source-bundle/ hold packaged copies of the sources (installer output / staged bundle).
+    exclude: ['node_modules/**', 'e2e/**', 'release/**', 'build/source-bundle/**']
   }
 })

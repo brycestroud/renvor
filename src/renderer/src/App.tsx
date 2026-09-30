@@ -31,6 +31,21 @@ function useAppliedTheme(theme: 'light' | 'dark' | 'system' | undefined): void {
   }, [theme])
 }
 
+/**
+ * Settings > Company's "Primary color" / "Accent color" pickers saved to
+ * the DB but nothing ever read them back - inline styles on <html> beat
+ * tokens.css's :root[data-theme] rules, so this overrides the --brand/
+ * --info base values the rest of the theme (hover/pressed/muted/border,
+ * all color-mix()'d off these two) derives from.
+ */
+function useAppliedBrandColors(primary: string | undefined, accent: string | undefined): void {
+  useEffect(() => {
+    const root = document.documentElement
+    if (primary) root.style.setProperty('--brand', primary)
+    if (accent) root.style.setProperty('--info', accent)
+  }, [primary, accent])
+}
+
 export function App(): JSX.Element | null {
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -38,6 +53,7 @@ export function App(): JSX.Element | null {
   })
 
   useAppliedTheme(settings?.theme)
+  useAppliedBrandColors(settings?.brandPrimaryColor, settings?.brandAccentColor)
 
   if (isLoading) return null
 
