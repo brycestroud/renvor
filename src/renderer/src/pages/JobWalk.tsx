@@ -63,7 +63,7 @@ function NewWalkPicker({ onStarted }: { onStarted: (walkId: string) => void }): 
 
       <div className="rounded-panel border border-border-subtle bg-surface-1 p-5">
         <h2 className="text-sm font-semibold text-text-primary">Start a walk</h2>
-        <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-text-secondary">Superintendent</span>
             <select
@@ -145,7 +145,7 @@ function NewWalkPicker({ onStarted }: { onStarted: (walkId: string) => void }): 
             start.mutate()
           }}
           disabled={!canStart || start.isPending}
-          className="mt-4 rounded-control bg-brand px-4 py-2.5 text-sm font-medium text-[#171200] transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 h-12 w-full rounded-control bg-brand px-4 py-2.5 text-sm font-medium text-[#171200] transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50 md:h-auto md:w-auto"
         >
           {start.isPending ? 'Starting…' : 'Start Walk'}
         </button>
@@ -161,7 +161,7 @@ function NewWalkPicker({ onStarted }: { onStarted: (walkId: string) => void }): 
             description="Start your first walk above."
           />
         ) : (
-          <div className="overflow-hidden rounded-panel border border-border-subtle">
+          <div className="hidden overflow-hidden rounded-panel border border-border-subtle md:block">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-border-subtle bg-surface-1 text-xs uppercase tracking-wide text-text-muted">
@@ -200,6 +200,32 @@ function NewWalkPicker({ onStarted }: { onStarted: (walkId: string) => void }): 
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        {(recentWalks?.length ?? 0) > 0 && (
+          <div className="flex flex-col gap-2 md:hidden">
+            {recentWalks?.map((w) => (
+              <button
+                key={w.id}
+                onClick={() => onStarted(w.id)}
+                className="flex items-center justify-between gap-3 rounded-panel border border-border-subtle bg-surface-1 p-3 text-left"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-text-primary">{w.superintendentName}</p>
+                  <p className="truncate text-xs text-text-muted">
+                    {w.projectName} · {w.visitType === 'home' ? 'Home' : 'Cross-Project'}
+                  </p>
+                  <p className="mt-0.5 font-mono text-[11px] text-text-muted">{w.date}</p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-chip px-2 py-0.5 text-[11px] ${
+                    w.status === 'submitted' ? 'bg-success-muted text-success' : 'bg-warning-muted text-warning'
+                  }`}
+                >
+                  {w.status === 'submitted' ? 'Submitted' : 'Draft'}
+                </span>
+              </button>
+            ))}
           </div>
         )}
       </div>

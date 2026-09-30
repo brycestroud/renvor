@@ -1,5 +1,44 @@
 # Changelog
 
+## Phone layout overhaul (unreleased)
+
+The phone app was the desktop UI squeezed onto a small screen: checklist text
+crushed into a one-word-wide column next to six score buttons, a 13-column
+matrix needing sideways scrolling, seven-column tables clipped at the edge,
+and five big stat tiles filling the first screen. Rebuilt for phones; desktop
+(>=768px) is unchanged.
+
+- **Job walk (the field screen)**: slim sticky bar with a progress bar and
+  scored count; walk details (super/project/date/visit type) collapse into a
+  one-line summary; one category at a time by default with Previous / Next
+  category buttons at top and bottom; each item's text gets the full width with
+  a row of big, equal score buttons under it.
+- **Dashboard**: range dropdown instead of five buttons, compact stat tiles,
+  and a card per superintendent showing overall score and only the categories
+  below 4.0 ("All categories on track" otherwise) with a sort menu, instead of
+  the matrix.
+- **Action items**: compact stats, swipeable status row, search always visible
+  with the four dropdown filters behind a "Filters" button, and cards with big
+  Close / Carry / Escalate buttons instead of a table.
+- **Superintendents, Projects, Job Walk recent walks, walk history**: cards
+  instead of tables. Superintendent detail has a compact header, a two-column
+  category grid and a shorter chart. Reports stack their stats two-up.
+- **Top bar** is slimmer and shows the company name rather than repeating the
+  page title; **page scroll resets** when you switch screens (it used to carry
+  over); PDF export, "Past Reports" and PDF icons are hidden on the phone
+  (they need the desktop).
+- **Bug fixed (desktop too)**: the seeded checklist shows a literal
+  `{{COMPANY}} Safety Kit on-site` - `renderCompanyText` existed but was never
+  called. Checklist and walk item text now render with the company name.
+- **Tests**: a real phone-size run (390px Edge against a seeded scratch app)
+  - tapping a score updates progress, Next category advances and resets scroll,
+  details start collapsed, no PDF controls - plus before/after screenshots of
+  every screen; the desktop e2e still passes. The e2e now launches with its own
+  Electron profile so it can run while a real Renvor is open (Renvor allows one
+  instance per profile).
+- Not verified on a physical phone or in iOS Safari (checked in Edge's phone
+  emulation). Installed copies only get this through a new release.
+
 ## v0.1.1 (2026-09-30)
 
 Release used to test the in-app update flow end to end (0.1.0 installed, then

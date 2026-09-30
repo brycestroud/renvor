@@ -34,6 +34,18 @@ const categoryAbbrev: Record<string, string> = {
   site_culture_observation: 'CULTURE'
 }
 
+const categoryShort: Record<string, string> = {
+  safety: 'Safety',
+  schedule: 'Schedule',
+  quality_control: 'Quality',
+  superintendent_traits: 'Traits',
+  knowledge: 'Knowledge',
+  customer_service: 'Service',
+  budget: 'Budget',
+  rocks: 'Rocks',
+  record_keeping: 'Records'
+}
+
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10)
 }
@@ -199,11 +211,23 @@ export function Dashboard(): JSX.Element {
   )
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <PageHeader
         title="Dashboard"
         actions={
-          <div className="flex gap-1.5">
+          <>
+          <select
+            value={range}
+            onChange={(e) => setRange(e.target.value as RangePreset)}
+            className="rounded-control border border-border bg-surface-2 px-3 py-2 text-xs text-text-primary md:hidden"
+          >
+            {(Object.keys(rangeLabels) as RangePreset[]).map((r) => (
+              <option key={r} value={r}>
+                {rangeLabels[r]}
+              </option>
+            ))}
+          </select>
+          <div className="hidden gap-1.5 md:flex">
             {(Object.keys(rangeLabels) as RangePreset[]).map((r) => (
               <button
                 key={r}
@@ -218,31 +242,32 @@ export function Dashboard(): JSX.Element {
               </button>
             ))}
           </div>
+          </>
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <div className="rounded-panel border border-border-subtle bg-surface-1 px-4 py-3">
-          <p className="text-xs uppercase tracking-wide text-text-muted">Active Supers</p>
-          <p className="mt-1 font-mono text-2xl text-text-primary">{rows.length}</p>
+      <div className="grid grid-cols-3 gap-2 md:gap-3 lg:grid-cols-5">
+        <div className="rounded-panel border border-border-subtle bg-surface-1 px-3 py-2 md:px-4 md:py-3">
+          <p className="text-[10px] uppercase leading-tight tracking-wide text-text-muted md:text-xs">Active Supers</p>
+          <p className="mt-0.5 font-mono text-xl md:mt-1 md:text-2xl text-text-primary">{rows.length}</p>
         </div>
-        <div className="rounded-panel border border-border-subtle bg-surface-1 px-4 py-3">
-          <p className="text-xs uppercase tracking-wide text-text-muted">Walks This Week</p>
-          <p className="mt-1 font-mono text-2xl text-text-primary">{matrix?.walksThisWeekCount ?? 0}</p>
+        <div className="rounded-panel border border-border-subtle bg-surface-1 px-3 py-2 md:px-4 md:py-3">
+          <p className="text-[10px] uppercase leading-tight tracking-wide text-text-muted md:text-xs">Walks This Week</p>
+          <p className="mt-0.5 font-mono text-xl md:mt-1 md:text-2xl text-text-primary">{matrix?.walksThisWeekCount ?? 0}</p>
         </div>
-        <div className="rounded-panel border border-border-subtle bg-surface-1 px-4 py-3">
-          <p className="text-xs uppercase tracking-wide text-text-muted">Avg Score ({rangeLabels[range]})</p>
-          <p className="mt-1 font-mono text-2xl text-text-primary">
+        <div className="rounded-panel border border-border-subtle bg-surface-1 px-3 py-2 md:px-4 md:py-3">
+          <p className="text-[10px] uppercase leading-tight tracking-wide text-text-muted md:text-xs">Avg Score<span className="hidden md:inline"> ({rangeLabels[range]})</span></p>
+          <p className="mt-0.5 font-mono text-xl md:mt-1 md:text-2xl text-text-primary">
             {avgScoreInRange != null ? avgScoreInRange.toFixed(1) : '—'}
           </p>
         </div>
-        <div className="rounded-panel border border-border-subtle bg-surface-1 px-4 py-3">
-          <p className="text-xs uppercase tracking-wide text-text-muted">Open Action Items</p>
-          <p className="mt-1 font-mono text-2xl text-text-primary">{openActionItems}</p>
+        <div className="rounded-panel border border-border-subtle bg-surface-1 px-3 py-2 md:px-4 md:py-3">
+          <p className="text-[10px] uppercase leading-tight tracking-wide text-text-muted md:text-xs">Open Action Items</p>
+          <p className="mt-0.5 font-mono text-xl md:mt-1 md:text-2xl text-text-primary">{openActionItems}</p>
         </div>
-        <div className="rounded-panel border border-border-subtle bg-surface-1 px-4 py-3">
-          <p className="text-xs uppercase tracking-wide text-text-muted">Overdue</p>
-          <p className="mt-1 font-mono text-2xl text-danger">{overdueActionItems}</p>
+        <div className="rounded-panel border border-border-subtle bg-surface-1 px-3 py-2 md:px-4 md:py-3">
+          <p className="text-[10px] uppercase leading-tight tracking-wide text-text-muted md:text-xs">Overdue</p>
+          <p className="mt-0.5 font-mono text-xl md:mt-1 md:text-2xl text-danger">{overdueActionItems}</p>
         </div>
       </div>
 
@@ -259,7 +284,7 @@ export function Dashboard(): JSX.Element {
                 <button
                   key={r.superintendentId}
                   onClick={() => navigate(`/superintendents/${r.superintendentId}`)}
-                  className="flex items-center gap-2 rounded-control px-2 py-1 text-left text-sm text-text-primary hover:bg-surface-hover"
+                  className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-control px-2 py-1.5 text-left text-sm text-text-primary hover:bg-surface-hover"
                 >
                   <span className="font-medium">{r.name}</span>
                   {(since ?? 0) > attentionDays && (
@@ -293,7 +318,7 @@ export function Dashboard(): JSX.Element {
       )}
 
       {!isLoading && rows.length > 0 && (
-        <div className="overflow-x-auto rounded-panel border border-border-subtle">
+        <div className="hidden overflow-x-auto rounded-panel border border-border-subtle md:block">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-border-subtle bg-surface-1">
@@ -366,6 +391,73 @@ export function Dashboard(): JSX.Element {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!isLoading && rows.length > 0 && (
+        <div className="flex flex-col gap-2 md:hidden">
+          <label className="flex items-center justify-between gap-2 text-xs text-text-muted">
+            Sort by
+            <select
+              value={sortKey}
+              onChange={(e) => {
+                setSortKey(e.target.value)
+                setSortDir('asc')
+              }}
+              className="rounded-control border border-border bg-surface-2 px-2.5 py-1.5 text-xs text-text-primary"
+            >
+              <option value="name">Name</option>
+              <option value="overall">Lowest score first</option>
+              <option value="lastWalk">Longest since walk first</option>
+              <option value="walks">Fewest walks first</option>
+            </select>
+          </label>
+          {sortedRows.map((r) => {
+            const overall = overallFor(r)
+            const weak = activeCategories
+              .filter((c) => !c.isGsOnly)
+              .map((c) => ({ c, v: r.categoryScores.find((cs) => cs.categoryId === c.id)?.average ?? null }))
+              .filter((x): x is { c: (typeof activeCategories)[number]; v: number } => x.v != null && x.v < 4)
+              .sort((a, b) => a.v - b.v)
+            return (
+              <button
+                key={r.superintendentId}
+                onClick={() => navigate(`/superintendents/${r.superintendentId}`)}
+                className="flex flex-col gap-2 rounded-panel border border-border-subtle bg-surface-1 p-3 text-left"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-text-primary">{r.name}</p>
+                    <p className="truncate text-xs text-text-muted">{r.homeProjectName ?? 'No home project'}</p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-chip px-2.5 py-1 font-mono text-sm font-semibold ${
+                      overall != null ? scoreCellClass[scoreBand(overall)] : 'text-text-disabled'
+                    }`}
+                  >
+                    {overall != null ? overall.toFixed(1) : '—'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-text-muted">
+                  {r.walksInRange} walk{r.walksInRange === 1 ? '' : 's'} · last {r.lastWalkDate ?? 'never'}
+                </p>
+                {weak.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {weak.slice(0, 4).map(({ c, v }) => (
+                      <span
+                        key={c.id}
+                        className={`rounded-chip px-2 py-0.5 text-[11px] ${scoreCellClass[scoreBand(v)]}`}
+                      >
+                        {categoryShort[c.key] ?? c.name} {v.toFixed(1)}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  overall != null && <p className="text-[11px] text-success">All categories on track</p>
+                )}
+              </button>
+            )
+          })}
         </div>
       )}
     </div>

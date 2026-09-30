@@ -14,7 +14,7 @@ import {
 import { ArrowLeft, FileText, ListChecks, Pencil } from 'lucide-react'
 import { EmptyState } from '../components/EmptyState'
 import { SuperintendentFormModal, nccerLabels } from '../components/SuperintendentFormModal'
-import { gsApi } from '../lib/gsApi'
+import { gsApi, isRemote } from '../lib/gsApi'
 import { scoreBand, unweightedAverage, weightedOverallScore } from '@shared/scoring'
 
 const priorityColors: Record<string, string> = {
@@ -122,7 +122,7 @@ export function SuperintendentDetail(): JSX.Element {
   const compareCategory = activeCategories.find((c) => c.id === compareCategoryId)
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <button
         onClick={() => navigate('/')}
         className="flex w-fit items-center gap-1.5 text-sm text-text-muted hover:text-text-primary"
@@ -130,10 +130,10 @@ export function SuperintendentDetail(): JSX.Element {
         <ArrowLeft size={14} /> Dashboard
       </button>
 
-      <div className="rounded-panel border border-border-subtle bg-surface-1 p-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3">
+      <div className="rounded-panel border border-border-subtle bg-surface-1 p-4 md:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <h1 className="text-xl font-semibold text-text-primary">{sup.name}</h1>
               <span
                 className={`rounded-chip px-2 py-0.5 text-xs ${
@@ -146,9 +146,9 @@ export function SuperintendentDetail(): JSX.Element {
                 NCCER: {nccerLabels[sup.nccerStatus]}
               </span>
             </div>
-            <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-text-secondary">
+            <div className="mt-2 flex flex-col gap-y-1 text-sm text-text-secondary md:flex-row md:flex-wrap md:gap-x-6">
               <span>Home: {homeProject?.name ?? '—'}</span>
-              <span>{sup.email || '—'}</span>
+              <span className="break-all">{sup.email || '—'}</span>
               <span>{sup.phone || '—'}</span>
               <span>{sup.yearsExperience != null ? `${sup.yearsExperience} yrs experience` : '—'}</span>
             </div>
@@ -168,29 +168,33 @@ export function SuperintendentDetail(): JSX.Element {
           </div>
           <button
             onClick={() => setEditing(true)}
-            className="flex items-center gap-1.5 rounded-control border border-border bg-surface-2 px-3 py-2 text-sm text-text-secondary hover:bg-surface-hover"
+            className="flex shrink-0 items-center gap-1.5 rounded-control border border-border bg-surface-2 px-3 py-2 text-sm text-text-secondary hover:bg-surface-hover"
           >
             <Pencil size={14} /> Edit
           </button>
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-2 border-t border-border-subtle pt-4">
+        <div className="mt-4 grid grid-cols-2 gap-1.5 border-t border-border-subtle pt-3 md:mt-5 md:flex md:flex-wrap md:gap-2 md:pt-4">
           {allTimeCategoryAverages.map(({ category, average }) => (
             <span
               key={category.id}
-              className={`rounded-chip px-2.5 py-1 text-xs ${
+              className={`flex items-center justify-between gap-2 rounded-chip px-2.5 py-1.5 text-xs md:inline-flex md:py-1 ${
                 average != null ? bandChip[scoreBand(average)] : 'bg-surface-2 text-text-disabled'
               }`}
               title={category.name}
             >
-              {category.name}: {average != null ? average.toFixed(1) : '—'}
+              <span className="truncate md:mr-1 md:overflow-visible">
+                {category.name}
+                <span className="hidden md:inline">:</span>
+              </span>
+              <span className="font-mono md:font-sans">{average != null ? average.toFixed(1) : '—'}</span>
             </span>
           ))}
         </div>
       </div>
 
-      <div className="rounded-panel border border-border-subtle bg-surface-1 p-5">
-        <div className="flex items-center justify-between">
+      <div className="rounded-panel border border-border-subtle bg-surface-1 p-4 md:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-text-primary">Trend</h2>
           <select
             value={compareCategoryId}
@@ -209,7 +213,7 @@ export function SuperintendentDetail(): JSX.Element {
         {chartData.length === 0 ? (
           <p className="mt-4 text-sm text-text-muted">No submitted walks yet.</p>
         ) : (
-          <div className="mt-4 h-[260px]">
+          <div className="mt-4 h-[200px] md:h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: -16 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
@@ -263,7 +267,7 @@ export function SuperintendentDetail(): JSX.Element {
             />
           )}
           {!isLoading && chronological.length > 0 && (
-            <div className="overflow-hidden rounded-panel border border-border-subtle">
+            <div className="hidden overflow-hidden rounded-panel border border-border-subtle md:block">
               <table className="w-full border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-border-subtle bg-surface-1 text-xs uppercase tracking-wide text-text-muted">
@@ -271,7 +275,7 @@ export function SuperintendentDetail(): JSX.Element {
                     <th className="px-4 py-2.5 font-medium">Project</th>
                     <th className="px-4 py-2.5 font-medium">Visit</th>
                     <th className="px-4 py-2.5 font-medium text-right">Overall</th>
-                    <th className="px-4 py-2.5 font-medium text-right">PDF</th>
+                    {!isRemote && <th className="px-4 py-2.5 font-medium text-right">PDF</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -310,21 +314,64 @@ export function SuperintendentDetail(): JSX.Element {
                             {overall != null ? overall.toFixed(1) : '—'}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => exportPdf.mutate(walk.walkId)}
-                            disabled={exportPdf.isPending}
-                            title="Export PDF"
-                            className="text-xs text-info hover:underline disabled:cursor-not-allowed disabled:text-text-disabled disabled:no-underline"
-                          >
-                            <FileText size={13} className="inline" />
-                          </button>
-                        </td>
+                        {!isRemote && (
+                          <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => exportPdf.mutate(walk.walkId)}
+                              disabled={exportPdf.isPending}
+                              title="Export PDF"
+                              className="text-xs text-info hover:underline disabled:cursor-not-allowed disabled:text-text-disabled disabled:no-underline"
+                            >
+                              <FileText size={13} className="inline" />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     )
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+          {!isLoading && chronological.length > 0 && (
+            <div className="flex flex-col gap-2 md:hidden">
+              {[...chronological].reverse().map((walk) => {
+                const overall = weightedEnabled
+                  ? weightedOverallScore(
+                      activeCategories.map((c) => ({
+                        categoryId: c.id,
+                        score: walk.categoryScores.find((cs) => cs.categoryId === c.id)?.average ?? null,
+                        weight: c.weight,
+                        isGsOnly: c.isGsOnly
+                      }))
+                    )
+                  : unweightedAverage(
+                      activeCategories
+                        .filter((c) => !c.isGsOnly)
+                        .map((c) => walk.categoryScores.find((cs) => cs.categoryId === c.id)?.average ?? null)
+                    )
+                return (
+                  <button
+                    key={walk.walkId}
+                    onClick={() => navigate(`/job-walk?walk=${walk.walkId}`)}
+                    className="flex items-center justify-between gap-3 rounded-panel border border-border-subtle bg-surface-1 p-3 text-left"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-text-primary">{walk.projectName}</p>
+                      <p className="mt-0.5 text-[11px] text-text-muted">
+                        <span className="font-mono">{walk.date}</span> · {walk.visitType === 'home' ? 'Home' : 'Cross-Project'}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-chip px-2.5 py-1 font-mono text-sm font-semibold ${
+                        overall != null ? bandChip[scoreBand(overall)] : 'text-text-disabled'
+                      }`}
+                    >
+                      {overall != null ? overall.toFixed(1) : '—'}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>

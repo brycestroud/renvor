@@ -29,7 +29,9 @@ test.beforeAll(async () => {
   }
 
   electronApp = await electron.launch({
-    args: [mainEntry],
+    // Own Electron profile: Renvor allows one instance per profile, so without this the test
+    // can't start while a real Renvor is open.
+    args: [mainEntry, '--user-data-dir=' + join(scratchAppData, 'electron-profile')],
     env: { ...process.env, APPDATA: scratchAppData, NODE_ENV: 'production', PLAYWRIGHT_TEST: '1' }
   })
   page = await electronApp.firstWindow()
@@ -59,7 +61,7 @@ test('create project -> super -> submit walk -> action item -> report -> PDF exp
   await page.getByRole('button', { name: 'New Project' }).click()
   await page.getByPlaceholder('Riverside Medical Center').fill('E2E Test Project')
   await page.getByRole('button', { name: 'Create project' }).click()
-  await expect(page.getByText('E2E Test Project')).toBeVisible()
+  await expect(page.getByText('E2E Test Project').filter({ visible: true })).toBeVisible()
 
   // --- Create a superintendent, home project = the one above ---
   await page.getByRole('link', { name: 'Superintendents' }).click()
@@ -67,7 +69,7 @@ test('create project -> super -> submit walk -> action item -> report -> PDF exp
   await page.getByPlaceholder('Full name').fill('E2E Test Super')
   await page.getByLabel('Home project').selectOption({ label: 'E2E Test Project' })
   await page.getByRole('button', { name: 'Create superintendent' }).click()
-  await expect(page.getByText('E2E Test Super')).toBeVisible()
+  await expect(page.getByText('E2E Test Super').filter({ visible: true })).toBeVisible()
 
   // --- Start and complete a walk ---
   await page.getByRole('link', { name: 'Job Walk' }).click()
@@ -89,7 +91,7 @@ test('create project -> super -> submit walk -> action item -> report -> PDF exp
 
   // --- Action item appears on the Action Items screen ---
   await page.getByRole('link', { name: 'Action Items' }).click()
-  await expect(page.getByText(actionItemText)).toBeVisible()
+  await expect(page.getByText(actionItemText).filter({ visible: true })).toBeVisible()
 
   // --- The report shows the walk (this week's default report includes it) ---
   await page.getByRole('link', { name: 'Reports' }).click()

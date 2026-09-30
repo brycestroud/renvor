@@ -2,6 +2,8 @@ import { eq, and, ne, desc, isNull } from 'drizzle-orm'
 import { v4 as uuid } from 'uuid'
 import { getDb } from '../db/client'
 import * as schema from '../db/schema'
+import { renderCompanyText } from '@shared/seedData'
+import { getAllSettings } from './settingsRepo'
 import type {
   CreateWalkInput,
   UpdateWalkHeaderInput,
@@ -59,7 +61,7 @@ function loadWalkDetail(db: ReturnType<typeof getDb>, id: string): WalkDetail {
       id: r.id,
       checklistItemId: r.checklistItemId,
       categoryId: itemById.get(r.checklistItemId)?.categoryId ?? '',
-      itemTextSnapshot: r.itemTextSnapshot,
+      itemTextSnapshot: renderCompanyText(r.itemTextSnapshot, getAllSettings().companyName),
       score: r.score,
       isNa: r.isNa
     })),

@@ -76,7 +76,7 @@ export function Superintendents(): JSX.Element {
       )}
 
       {!isLoading && filtered.length > 0 && (
-        <div className="overflow-hidden rounded-panel border border-border-subtle">
+        <div className="hidden overflow-hidden rounded-panel border border-border-subtle md:block">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-border-subtle bg-surface-1 text-xs uppercase tracking-wide text-text-muted">
@@ -126,6 +126,39 @@ export function Superintendents(): JSX.Element {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!isLoading && filtered.length > 0 && (
+        <div className="flex flex-col gap-2 md:hidden">
+          {filtered.map((s) => (
+            <div
+              key={s.id}
+              onClick={() => navigate(`/superintendents/${s.id}`)}
+              className="flex cursor-pointer flex-col gap-2 rounded-panel border border-border-subtle bg-surface-1 p-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-text-primary">{s.name}</p>
+                  <p className="truncate text-xs text-text-muted">{projectName(s.homeProjectId)}</p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-chip px-2 py-0.5 text-[11px] ${
+                    s.active ? 'bg-success-muted text-success' : 'bg-surface-2 text-text-muted'
+                  }`}
+                >
+                  {s.active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              {(s.email || s.phone) && (
+                <p className="truncate text-xs text-text-secondary">{s.email || s.phone}</p>
+              )}
+              <div className="flex gap-4 border-t border-border-subtle pt-2 text-xs" onClick={(e) => e.stopPropagation()}>
+                <button onClick={() => setEditing(s)} className="text-info">Edit</button>
+                <button onClick={() => setArchiving(s)} className="ml-auto text-danger">Archive</button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

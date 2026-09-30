@@ -1,10 +1,13 @@
 import { eq } from 'drizzle-orm'
 import { getDb } from '../db/client'
 import * as schema from '../db/schema'
+import { renderCompanyText } from '@shared/seedData'
+import { getAllSettings } from './settingsRepo'
 import type { CategoryWithItems, UpdateCategoryWeightInput } from '@shared/ipc-contract'
 
 export function listCategoriesWithItems(): CategoryWithItems[] {
   const db = getDb()
+  const companyName = getAllSettings().companyName
   const categories = db
     .select()
     .from(schema.categories)
@@ -29,7 +32,7 @@ export function listCategoriesWithItems(): CategoryWithItems[] {
       .map((i) => ({
         id: i.id,
         categoryId: i.categoryId,
-        text: i.text,
+        text: renderCompanyText(i.text, companyName),
         frequency: i.frequency,
         isCustom: i.isCustom,
         sortOrder: i.sortOrder,

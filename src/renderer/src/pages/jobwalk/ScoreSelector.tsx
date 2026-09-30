@@ -19,7 +19,7 @@ export const ScoreSelector = forwardRef<
   return (
     <div
       ref={ref}
-      className={`flex shrink-0 gap-1 rounded-control p-0.5 ${
+      className={`flex w-full gap-1.5 rounded-control p-0.5 md:w-auto md:shrink-0 md:gap-1 ${
         focused ? 'ring-2 ring-info ring-offset-1 ring-offset-surface-1' : ''
       }`}
     >
@@ -30,7 +30,7 @@ export const ScoreSelector = forwardRef<
             key={n}
             type="button"
             onClick={() => onChange(n, false)}
-            className={`flex h-11 w-11 items-center justify-center rounded-control border text-sm font-semibold transition-colors ${
+            className={`flex h-12 flex-1 items-center justify-center rounded-control border text-base font-semibold transition-colors md:h-11 md:w-11 md:flex-none md:text-sm ${
               selected
                 ? scoreColors[scoreBand(n)]
                 : 'border-border bg-surface-2 text-text-secondary hover:bg-surface-hover'
@@ -43,7 +43,7 @@ export const ScoreSelector = forwardRef<
       <button
         type="button"
         onClick={() => onChange(null, true)}
-        className={`flex h-11 items-center justify-center rounded-control border px-3 text-xs font-semibold transition-colors ${
+        className={`flex h-12 flex-[1.3] items-center justify-center rounded-control border px-3 text-xs font-semibold transition-colors md:h-11 md:flex-none ${
           isNa
             ? 'border-border-strong bg-surface-2 text-text-primary'
             : 'border-border bg-surface-2 text-text-muted hover:bg-surface-hover'

@@ -62,7 +62,7 @@ export function CategorySection({
     <div className="rounded-panel border border-border-subtle bg-surface-1">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left"
+        className="flex w-full items-center justify-between px-3 py-3 text-left md:px-4"
       >
         <div className="flex items-center gap-2">
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -81,7 +81,7 @@ export function CategorySection({
       </button>
 
       {expanded && (
-        <div className="border-t border-border-subtle px-4 py-3">
+        <div className="border-t border-border-subtle px-3 py-3 md:px-4">
           <div className="flex flex-col divide-y divide-border-subtle">
             {activeItems.map((item) => {
               const s = scoresByItemId.get(item.id)
@@ -89,7 +89,7 @@ export function CategorySection({
               return (
                 <div
                   key={item.id}
-                  className={`flex items-center gap-3 py-2.5 pl-3 ${
+                  className={`flex flex-col gap-2.5 py-3 pl-3 md:flex-row md:items-center md:gap-3 md:py-2.5 ${
                     due ? 'border-l-2 border-brand' : 'border-l-2 border-transparent'
                   }`}
                 >

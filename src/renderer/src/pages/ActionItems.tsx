@@ -68,6 +68,7 @@ export function ActionItems(): JSX.Element {
   const [ownerType, setOwnerType] = useState('')
   const [priority, setPriority] = useState('')
   const [search, setSearch] = useState('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const [editing, setEditing] = useState<ActionItemListDto | null | 'new'>(null)
   const [deleting, setDeleting] = useState<ActionItemListDto | null>(null)
@@ -171,32 +172,32 @@ export function ActionItems(): JSX.Element {
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="rounded-panel border border-border-subtle bg-surface-1 px-4 py-3">
-          <p className="text-xs uppercase tracking-wide text-text-muted">Open</p>
-          <p className="mt-1 font-mono text-2xl text-text-primary">{stats.open}</p>
+      <div className="grid grid-cols-4 gap-2 md:grid-cols-2 md:gap-3 lg:grid-cols-4">
+        <div className="rounded-panel border border-border-subtle bg-surface-1 px-3 py-2 md:px-4 md:py-3">
+          <p className="text-[10px] uppercase leading-tight tracking-wide text-text-muted md:text-xs">Open</p>
+          <p className="mt-0.5 font-mono text-xl md:mt-1 md:text-2xl text-text-primary">{stats.open}</p>
         </div>
-        <div className="rounded-panel border border-border-subtle bg-surface-1 px-4 py-3">
-          <p className="text-xs uppercase tracking-wide text-text-muted">Overdue</p>
-          <p className="mt-1 font-mono text-2xl text-danger">{stats.overdue}</p>
+        <div className="rounded-panel border border-border-subtle bg-surface-1 px-3 py-2 md:px-4 md:py-3">
+          <p className="text-[10px] uppercase leading-tight tracking-wide text-text-muted md:text-xs">Overdue</p>
+          <p className="mt-0.5 font-mono text-xl md:mt-1 md:text-2xl text-danger">{stats.overdue}</p>
         </div>
-        <div className="rounded-panel border border-border-subtle bg-surface-1 px-4 py-3">
-          <p className="text-xs uppercase tracking-wide text-text-muted">Escalated</p>
-          <p className="mt-1 font-mono text-2xl text-danger">{stats.escalated}</p>
+        <div className="rounded-panel border border-border-subtle bg-surface-1 px-3 py-2 md:px-4 md:py-3">
+          <p className="text-[10px] uppercase leading-tight tracking-wide text-text-muted md:text-xs">Escalated</p>
+          <p className="mt-0.5 font-mono text-xl md:mt-1 md:text-2xl text-danger">{stats.escalated}</p>
         </div>
-        <div className="rounded-panel border border-border-subtle bg-surface-1 px-4 py-3">
-          <p className="text-xs uppercase tracking-wide text-text-muted">Closed this week</p>
-          <p className="mt-1 font-mono text-2xl text-success">{stats.closedThisWeek}</p>
+        <div className="rounded-panel border border-border-subtle bg-surface-1 px-3 py-2 md:px-4 md:py-3">
+          <p className="text-[10px] uppercase leading-tight tracking-wide text-text-muted md:text-xs"><span className="md:hidden">Closed</span><span className="hidden md:inline">Closed this week</span></p>
+          <p className="mt-0.5 font-mono text-xl md:mt-1 md:text-2xl text-success">{stats.closedThisWeek}</p>
         </div>
       </div>
 
       <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap gap-2">
+        <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
           {statusTabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setStatus(tab.key)}
-              className={`rounded-control border px-3 py-1.5 text-xs transition-colors ${
+              className={`shrink-0 rounded-control border px-3 py-2 text-xs transition-colors md:py-1.5 ${
                 status === tab.key
                   ? 'border-brand-border bg-brand-muted text-brand'
                   : 'border-border bg-surface-2 text-text-secondary hover:bg-surface-hover'
@@ -208,7 +209,8 @@ export function ActionItems(): JSX.Element {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={`${selectClass} w-[170px]`}>
+          <div className={`order-3 w-full grid-cols-2 gap-2 md:order-1 md:flex md:w-auto md:flex-wrap md:items-center ${filtersOpen ? "grid" : "hidden"}`}>
+          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={`${selectClass} w-full md:w-[170px]`}>
             <option value="">All projects</option>
             {projects?.map((p) => (
               <option key={p.id} value={p.id}>
@@ -219,7 +221,7 @@ export function ActionItems(): JSX.Element {
           <select
             value={superintendentId}
             onChange={(e) => setSuperintendentId(e.target.value)}
-            className={`${selectClass} w-[170px]`}
+            className={`${selectClass} w-full md:w-[170px]`}
           >
             <option value="">All supers</option>
             {supers?.map((s) => (
@@ -228,19 +230,26 @@ export function ActionItems(): JSX.Element {
               </option>
             ))}
           </select>
-          <select value={ownerType} onChange={(e) => setOwnerType(e.target.value)} className={`${selectClass} w-[140px]`}>
+          <select value={ownerType} onChange={(e) => setOwnerType(e.target.value)} className={`${selectClass} w-full md:w-[140px]`}>
             <option value="">All owners</option>
             <option value="gs">GS</option>
             <option value="superintendent">Superintendent</option>
             <option value="pm">PM</option>
           </select>
-          <select value={priority} onChange={(e) => setPriority(e.target.value)} className={`${selectClass} w-[130px]`}>
+          <select value={priority} onChange={(e) => setPriority(e.target.value)} className={`${selectClass} w-full md:w-[130px]`}>
             <option value="">All priorities</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
-          <div className="relative flex-1 min-w-[180px]">
+          </div>
+          <button
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            className="order-2 flex h-10 shrink-0 items-center gap-1.5 rounded-control border border-border bg-surface-2 px-3 text-xs text-text-secondary md:hidden"
+          >
+            Filters{[projectId, superintendentId, ownerType, priority].filter(Boolean).length > 0 ? ` (${[projectId, superintendentId, ownerType, priority].filter(Boolean).length})` : ""}
+          </button>
+          <div className="relative order-1 min-w-0 flex-1 md:order-3 md:min-w-[180px]">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
             <input
               value={search}
@@ -263,7 +272,7 @@ export function ActionItems(): JSX.Element {
       )}
 
       {!isLoading && filtered.length > 0 && (
-        <div className="overflow-hidden rounded-panel border border-border-subtle">
+        <div className="hidden overflow-hidden rounded-panel border border-border-subtle md:block">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-border-subtle bg-surface-1 text-xs uppercase tracking-wide text-text-muted">
@@ -380,6 +389,91 @@ export function ActionItems(): JSX.Element {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!isLoading && filtered.length > 0 && (
+        <div className="flex flex-col gap-2 md:hidden">
+          {filtered.map((item) => {
+            const overdue = isActionItemOverdue(item.dueDate, item.status, today)
+            return (
+              <div key={item.id} className="flex flex-col gap-2.5 rounded-panel border border-border-subtle bg-surface-1 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm text-text-primary">{item.text}</p>
+                  <span className={`shrink-0 rounded-chip px-2 py-0.5 text-[11px] capitalize ${statusChip[item.status]}`}>
+                    {item.status}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-text-muted">
+                  <span className={`font-semibold uppercase ${priorityColors[item.priority]}`}>{item.priority}</span>
+                  <span className={overdue ? 'font-medium text-danger' : ''}>
+                    {item.dueDate ? `due ${item.dueDate}` : 'no due date'}
+                    {overdue && ' · overdue'}
+                  </span>
+                  {item.projectName && <span>· {item.projectName}</span>}
+                  {item.superintendentName && <span>· {item.superintendentName}</span>}
+                </div>
+                {item.status === 'escalated' && (
+                  <label className="flex items-center gap-1.5 text-[11px] text-text-muted">
+                    <input
+                      type="checkbox"
+                      checked={item.includeInReport}
+                      onChange={(e) => toggleIncludeInReport.mutate({ id: item.id, includeInReport: e.target.checked })}
+                      className="h-3.5 w-3.5 accent-[var(--brand)]"
+                    />
+                    Include in report
+                  </label>
+                )}
+                <div className="flex gap-2 text-xs [&>button]:h-10 [&>button]:flex-1">
+                  {(item.status === 'open' || item.status === 'carried') && (
+                    <>
+                      <button
+                        onClick={() => transition.mutate({ id: item.id, event: 'closed' })}
+                        className="rounded-control border border-border bg-surface-2 text-text-secondary"
+                      >
+                        Close
+                      </button>
+                      <button
+                        onClick={() => transition.mutate({ id: item.id, event: 'carried' })}
+                        className="rounded-control border border-border bg-surface-2 text-text-secondary"
+                      >
+                        Carry
+                      </button>
+                      <button
+                        onClick={() => setEscalating(item)}
+                        className="rounded-control border border-danger-muted bg-danger-muted text-danger"
+                      >
+                        Escalate
+                      </button>
+                    </>
+                  )}
+                  {item.status === 'escalated' && (
+                    <button
+                      onClick={() => setDeEscalating(item)}
+                      className="rounded-control border border-border bg-surface-2 text-text-secondary"
+                    >
+                      De-escalate
+                    </button>
+                  )}
+                  {item.status === 'closed' && (
+                    <button
+                      onClick={() => transition.mutate({ id: item.id, event: 'reopened' })}
+                      className="rounded-control border border-border bg-surface-2 text-text-secondary"
+                    >
+                      Reopen
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 border-t border-border-subtle pt-2 text-xs text-text-muted">
+                  <button onClick={() => setEditing(item)} className="hover:text-text-primary">Edit</button>
+                  <button onClick={() => setHistoryItem(item)} className="flex items-center gap-1 hover:text-text-primary">
+                    <History size={12} /> History
+                  </button>
+                  <button onClick={() => setDeleting(item)} className="ml-auto text-danger/80 hover:text-danger">Delete</button>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 

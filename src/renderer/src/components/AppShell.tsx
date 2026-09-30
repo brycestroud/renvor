@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Sidebar } from './Sidebar'
@@ -22,7 +22,12 @@ export function AppShell(): JSX.Element {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => gsApi().getSettings() })
 
-  useEffect(() => setDrawerOpen(false), [location.pathname])
+  const mainRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    setDrawerOpen(false)
+    mainRef.current?.scrollTo({ top: 0 })
+  }, [location.pathname])
 
   return (
     <div className="flex h-[100dvh] w-screen overflow-hidden bg-canvas text-text-primary">
@@ -42,9 +47,10 @@ export function AppShell(): JSX.Element {
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           pageLabel={pageLabels[location.pathname] ?? 'Renvor'}
+          companyName={settings?.companyName ?? ''}
           lastBackupAt={settings?.lastBackupAt ?? null}
         />
-        <main className="flex-1 overflow-y-auto px-3 py-4 pb-24 md:px-6 md:py-6 md:pb-6">
+        <main ref={mainRef} className="flex-1 overflow-y-auto px-3 py-4 pb-24 md:px-6 md:py-6 md:pb-6">
           <Outlet />
         </main>
       </div>

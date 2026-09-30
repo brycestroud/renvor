@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, CheckCircle2, ChevronLeft, ChevronRight, FileText, Mail, RotateCcw } from 'lucide-react'
+import { Archive, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, FileText, Mail, RotateCcw } from 'lucide-react'
 import { CategorySection } from './CategorySection'
 import { ActionItemsSection } from './ActionItemsSection'
 import { ProcorePanel } from './ProcorePanel'
@@ -8,7 +8,7 @@ import { EmailWalkDialog } from './EmailWalkDialog'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { inputClass, selectClass } from '../../components/FormField'
 import { useAutosaveText } from '../../lib/useAutosaveText'
-import { gsApi } from '../../lib/gsApi'
+import { gsApi, isRemote } from '../../lib/gsApi'
 import { isItemDue, type PriorScoreRecord } from '@shared/scoring'
 import type { VisitType, WalkItemScoreDto } from '@shared/ipc-contract'
 
@@ -75,7 +75,9 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
     enabled: Boolean(walk) && procoreEnabled
   })
 
-  const [stepMode, setStepMode] = useState(false)
+  // Phones default to one category at a time - a 60-item scroll is unusable one-handed.
+  const [stepMode, setStepMode] = useState(() => window.matchMedia('(max-width: 767px)').matches)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
   const [focusedItemId, setFocusedItemId] = useState<string | null>(null)
   const [savedFlash, setSavedFlash] = useState(false)
@@ -250,9 +252,40 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
   const visibleCategories = stepMode ? activeCategories.slice(stepIndex, stepIndex + 1) : activeCategories
 
   return (
-    <div className="flex flex-col gap-5 pb-10">
-      <div className="sticky top-0 z-10 -mx-6 border-b border-border bg-canvas px-6 py-4">
-        <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 pb-6 md:gap-5 md:pb-10">
+      <div className="sticky -top-4 z-10 -mx-3 -mt-4 border-b border-border bg-canvas px-3 py-2 md:hidden">
+        <div className="flex items-center gap-2">
+          <button onClick={onExit} className="flex h-9 items-center gap-0.5 rounded-control pr-2 text-sm text-text-muted">
+            <ChevronLeft size={18} /> Walks
+          </button>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between font-mono text-[11px] text-text-muted">
+              <span>{scoredCount}/{totalActiveItems} scored</span>
+              <span>{totalActiveItems > 0 ? Math.round((scoredCount / totalActiveItems) * 100) : 0}%</span>
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2">
+              <div
+                className="h-full rounded-full bg-brand transition-all"
+                style={{ width: `${totalActiveItems > 0 ? (scoredCount / totalActiveItems) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setStepMode(!stepMode)
+              setStepIndex(0)
+            }}
+            className={`h-9 shrink-0 rounded-control border px-3 text-xs transition-colors ${
+              stepMode ? 'border-brand-border bg-brand-muted text-brand' : 'border-border bg-surface-2 text-text-secondary'
+            }`}
+          >
+            {stepMode ? 'By category' : 'All items'}
+          </button>
+        </div>
+      </div>
+
+      <div className="md:sticky md:-top-6 md:z-10 md:-mx-6 md:border-b md:border-border md:bg-canvas md:px-6 md:py-4">
+        <div className="hidden items-center justify-between md:flex">
           <div className="flex items-center gap-3">
             <button onClick={onExit} className="text-sm text-text-muted hover:text-text-primary">
               ← Job Walk
@@ -293,13 +326,15 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
                 ` · last edited ${new Date(walk.lastEditedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
             </span>
             <div className="flex gap-2">
-              <button
-                onClick={() => exportPdf.mutate()}
-                disabled={exportPdf.isPending}
-                className="flex items-center gap-1 rounded-control border border-border bg-surface-2 px-2.5 py-1 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-60"
-              >
-                <FileText size={12} /> {exportPdf.isPending ? 'Exporting…' : 'Export PDF'}
-              </button>
+              {!isRemote && (
+                <button
+                  onClick={() => exportPdf.mutate()}
+                  disabled={exportPdf.isPending}
+                  className="flex items-center gap-1 rounded-control border border-border bg-surface-2 px-2.5 py-1 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-60"
+                >
+                  <FileText size={12} /> {exportPdf.isPending ? 'Exporting…' : 'Export PDF'}
+                </button>
+              )}
               <button
                 onClick={() => setEmailing(true)}
                 className="flex items-center gap-1 rounded-control border border-border bg-surface-2 px-2.5 py-1 text-xs text-text-secondary hover:bg-surface-hover"
@@ -317,7 +352,19 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
         )}
         {pdfMessage && <p className="mt-2 text-xs text-text-muted">{pdfMessage}</p>}
 
-        <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <button
+          onClick={() => setDetailsOpen(!detailsOpen)}
+          className="flex w-full items-center justify-between gap-2 rounded-control border border-border bg-surface-1 px-3 py-2.5 text-left text-xs text-text-secondary md:hidden"
+        >
+          <span className="min-w-0 truncate">
+            <span className="font-medium text-text-primary">{walk.superintendentName}</span> · {walk.projectName} ·{' '}
+            {walk.visitType === 'home' ? 'Home' : 'Cross-Project'}
+          </span>
+          <ChevronDown size={15} className={`shrink-0 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        <div className={`${detailsOpen ? 'block' : 'hidden'} md:block`}>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex flex-col gap-1 text-xs">
             <span className="text-text-secondary">Superintendent</span>
             <select
@@ -384,22 +431,37 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
             </button>
           ))}
         </div>
+        <button
+          onClick={() => setArchiving(true)}
+          className="mt-3 flex items-center gap-1 text-xs text-text-muted hover:text-danger md:hidden"
+        >
+          <Archive size={13} /> Archive this walk
+        </button>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap">
         <button
           onClick={() => markAllNa.mutate()}
           disabled={markAllNa.isPending}
           className="rounded-control border border-border bg-surface-2 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-50"
         >
-          Mark all remaining N/A
+          <span className="md:hidden">Remaining → N/A</span>
+          <span className="hidden md:inline">Mark all remaining N/A</span>
         </button>
         <button
           onClick={() => copyFromLast.mutate()}
           disabled={copyFromLast.isPending}
           className="rounded-control border border-border bg-surface-2 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-50"
         >
-          {copyFromLast.isPending ? 'Copying…' : "Copy scores from last walk"}
+          {copyFromLast.isPending ? (
+            'Copying…'
+          ) : (
+            <>
+              <span className="md:hidden">Copy last walk</span>
+              <span className="hidden md:inline">Copy scores from last walk</span>
+            </>
+          )}
         </button>
       </div>
 
@@ -447,6 +509,28 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
               procoreDailyLogCount={procoreEnabled ? (procorePanelData?.dailyLogs.length ?? null) : null}
             />
           ))}
+          <div className="flex gap-2 md:hidden">
+            <button
+              onClick={() => {
+                setStepIndex((i) => Math.max(0, i - 1))
+                document.querySelector('main')?.scrollTo({ top: 0 })
+              }}
+              disabled={stepIndex === 0}
+              className="flex h-12 flex-1 items-center justify-center gap-1 rounded-control border border-border bg-surface-2 text-sm text-text-secondary disabled:opacity-30"
+            >
+              <ChevronLeft size={16} /> Previous
+            </button>
+            <button
+              onClick={() => {
+                setStepIndex((i) => Math.min(activeCategories.length - 1, i + 1))
+                document.querySelector('main')?.scrollTo({ top: 0 })
+              }}
+              disabled={stepIndex === activeCategories.length - 1}
+              className="flex h-12 flex-1 items-center justify-center gap-1 rounded-control bg-brand text-sm font-medium text-[#171200] disabled:opacity-30"
+            >
+              Next category <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -505,7 +589,7 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
         </p>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 [&>button]:h-12 [&>button]:flex-1 md:[&>button]:h-auto md:[&>button]:flex-none">
         <button
           onClick={flushSaveDraft}
           className="rounded-control border border-border bg-surface-2 px-4 py-2.5 text-sm text-text-secondary hover:bg-surface-hover"
@@ -516,7 +600,7 @@ export function WalkEditor({ walkId, onExit }: { walkId: string; onExit: () => v
           <button
             onClick={() => submit.mutate()}
             disabled={priorOpenCount > 0 || submit.isPending}
-            className="flex items-center gap-1.5 rounded-control bg-brand px-4 py-2.5 text-sm font-medium text-[#171200] transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 rounded-control bg-brand px-4 py-2.5 text-sm font-medium text-[#171200] transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             <CheckCircle2 size={16} /> {submit.isPending ? 'Submitting…' : 'Submit'}
           </button>

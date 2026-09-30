@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, FileText, FolderOpen, Radio } from 'lucide-react'
 import { PageHeader } from '../components/PageHeader'
-import { gsApi } from '../lib/gsApi'
+import { gsApi, isRemote } from '../lib/gsApi'
 import { scoreBand } from '@shared/scoring'
 import type { ReportType } from '@shared/ipc-contract'
 
@@ -95,10 +95,10 @@ export function Reports(): JSX.Element {
   const isExporting = exportFull.isPending || exportExec.isPending
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <PageHeader title="Reports" />
 
-      <div className="flex flex-wrap items-end gap-4">
+      <div className="flex flex-wrap items-end gap-3 md:gap-4">
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-text-secondary">Week starting</span>
           <input
@@ -116,13 +116,13 @@ export function Reports(): JSX.Element {
               <button
                 key={t}
                 onClick={() => setType(t)}
-                className={`rounded-control border px-4 py-2 text-sm capitalize transition-colors ${
+                className={`rounded-control border px-3 py-2 text-sm capitalize transition-colors md:px-4 ${
                   type === t
                     ? 'border-brand-border bg-brand-muted text-brand'
                     : 'border-border bg-surface-2 text-text-secondary hover:bg-surface-hover'
                 }`}
               >
-                {t === 'full' ? 'Full' : 'Executive Summary'}
+                {t === 'full' ? 'Full' : 'Executive'}
               </button>
             ))}
           </div>
@@ -134,15 +134,17 @@ export function Reports(): JSX.Element {
           </span>
         )}
 
-        <div className="ml-auto">
-          <button
-            onClick={() => (type === 'full' ? exportFull.mutate() : exportExec.mutate())}
-            disabled={isExporting}
-            className="flex items-center gap-1.5 rounded-control bg-brand px-4 py-2.5 text-sm font-medium text-[#171200] transition-colors hover:bg-brand-hover disabled:opacity-60"
-          >
-            <Download size={16} /> {isExporting ? 'Exporting…' : 'Export PDF'}
-          </button>
-        </div>
+        {!isRemote && (
+          <div className="ml-auto">
+            <button
+              onClick={() => (type === 'full' ? exportFull.mutate() : exportExec.mutate())}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 rounded-control bg-brand px-4 py-2.5 text-sm font-medium text-[#171200] transition-colors hover:bg-brand-hover disabled:opacity-60"
+            >
+              <Download size={16} /> {isExporting ? 'Exporting…' : 'Export PDF'}
+            </button>
+          </div>
+        )}
       </div>
 
       {exportMessage && <p className="text-xs text-text-secondary">{exportMessage}</p>}
@@ -150,7 +152,7 @@ export function Reports(): JSX.Element {
       {isLoading && <p className="text-sm text-text-muted">Loading…</p>}
 
       {!isLoading && summary && (
-        <div className="rounded-panel border border-border-subtle bg-white p-6 text-[#171b20] shadow-lg">
+        <div className="rounded-panel border border-border-subtle bg-white p-4 text-[#171b20] shadow-lg md:p-6">
           <h2 className="text-lg font-semibold">
             {type === 'full' ? 'Weekly Field Report' : 'Executive Summary'}
           </h2>
@@ -158,7 +160,7 @@ export function Reports(): JSX.Element {
             {weekStart} – {weekEnd}
           </p>
 
-          <div className="mt-4 grid grid-cols-4 gap-4 text-sm">
+          <div className="mt-4 grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
             <div>
               <p className="text-xs uppercase text-[#838b94]">Walks Completed</p>
               <p className="font-semibold">{summary.walksCompleted}</p>
@@ -234,7 +236,7 @@ export function Reports(): JSX.Element {
         </div>
       )}
 
-      <div>
+      <div className={isRemote ? 'hidden' : undefined}>
         <h2 className="mb-3 text-sm font-semibold text-text-primary">Past Reports</h2>
         {(snapshots?.length ?? 0) === 0 ? (
           <p className="text-sm text-text-muted">Exported reports will show up here.</p>
