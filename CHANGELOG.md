@@ -1,6 +1,6 @@
 # Changelog
 
-## Phone layout overhaul (unreleased)
+## v0.1.2 - phone layout overhaul (2026-10-01)
 
 The phone app was the desktop UI squeezed onto a small screen: checklist text
 crushed into a one-word-wide column next to six score buttons, a 13-column
@@ -37,7 +37,7 @@ and five big stat tiles filling the first screen. Rebuilt for phones; desktop
   Electron profile so it can run while a real Renvor is open (Renvor allows one
   instance per profile).
 - Not verified on a physical phone or in iOS Safari (checked in Edge's phone
-  emulation). Installed copies only get this through a new release.
+  emulation).
 
 ## v0.1.1 (2026-09-30)
 
